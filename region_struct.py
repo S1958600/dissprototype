@@ -1,6 +1,5 @@
 class Region:
     def __init__(self, in_a=False, in_b=False, in_c=False):
-        # The tuple represents (in_a, in_b, in_c)
         self.sets = (in_a, in_b, in_c)
     
     def __repr__(self):

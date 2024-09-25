@@ -4,5 +4,5 @@ class Syllogism:
         self.minor_premise = minor_premise
         self.conclusion = conclusion
 
-    def __repr__(self):
-        return f"Major Premise: {self.major_premise}, Minor Premise: {self.minor_premise}, Conclusion: {self.conclusion}"
+    def __str__(self):
+        return f"Major Premise: {self.major_premise}\nMinor Premise: {self.minor_premise}\nConclusion: {self.conclusion}"
