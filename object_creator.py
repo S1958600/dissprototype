@@ -1,6 +1,7 @@
 from set_struct import SyllogismSet
 from statement_struct import SyllogismStatement
 from syllogism_struct import Syllogism
+from region_struct import RegionManager
 
 class ObjectCreator:
     unique_sets = {}
@@ -55,3 +56,15 @@ class ObjectCreator:
             name=ObjectCreator.unique_sets[set_name],
             negation=set_data['negation']
         )
+        
+        
+    @staticmethod
+    def generate_region_managers():
+        # Generate blank region manager for each statement
+        region_managers = {
+            'major_premise': RegionManager(),
+            'minor_premise': RegionManager(),
+            'conclusion': RegionManager()
+        }
+        
+        return region_managers

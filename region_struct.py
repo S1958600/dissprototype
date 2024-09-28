@@ -1,49 +1,91 @@
 class Region:
-    def __init__(self, in_a=False, in_b=False, in_c=False):
-        self.sets = (in_a, in_b, in_c)
+    def __init__(self, in_a=False, in_b=False, in_c=False, habitable=None, populated=None):
+        self.in_a = in_a
+        self.in_b = in_b
+        self.in_c = in_c
+        self.habitable = habitable
+        self.populated = populated
     
     def __repr__(self):
-        return f"Region{self.sets}"
+        return ''.join([f"{'' if in_set else '¬'}{set_name}" for in_set, set_name in zip([self.in_a, self.in_b, self.in_c], 'ABC')])
     
     def is_in_set(self, set_name):
-        if set_name == 'a':
-            return self.sets[0]
-        elif set_name == 'b':
-            return self.sets[1]
-        elif set_name == 'c':
-            return self.sets[2]
+        if set_name == 'A':
+            return self.in_a
+        elif set_name == 'B':
+            return self.in_b
+        elif set_name == 'C':
+            return self.in_c
         else:
-            raise ValueError("Invalid set name. Use 'a', 'b', or 'c'.")
+            raise ValueError("Invalid set name. Use 'A', 'B', or 'C'.")
+    
+    def get_sets_tuple(self):
+        return (self.in_a, self.in_b, self.in_c)
     
     def __eq__(self, other):
-        return self.sets == other.sets
+        return (
+            self.in_a == other.in_a and
+            self.in_b == other.in_b and
+            self.in_c == other.in_c
+        )
     
     def intersects(self, other):
-        return all(
-            (self.sets[i] and other.sets[i]) for i in range(3)
+        return (
+            (self.in_a and other.in_a) and
+            (self.in_b and other.in_b) and
+            (self.in_c and other.in_c)
         )
     
     def union(self, other):
         return Region(
-            in_a=self.sets[0] or other.sets[0],
-            in_b=self.sets[1] or other.sets[1],
-            in_c=self.sets[2] or other.sets[2]
+            in_a=self.in_a or other.in_a,
+            in_b=self.in_b or other.in_b,
+            in_c=self.in_c or other.in_c
         )
     
     def difference(self, other):
         return Region(
-            in_a=self.sets[0] and not other.sets[0],
-            in_b=self.sets[1] and not other.sets[1],
-            in_c=self.sets[2] and not other.sets[2]
+            in_a=self.in_a and not other.in_a,
+            in_b=self.in_b and not other.in_b,
+            in_c=self.in_c and not other.in_c
         )
 
-# Example usage
-region1 = Region(in_a=True, in_b=True, in_c=False)
-region2 = Region(in_a=False, in_b=True, in_c=True)
-
-print(region1)            # Output: Region(True, True, False)
-print(region2)            # Output: Region(False, True, True)
-print(region1.is_in_set('a'))  # Output: True
-print(region1.intersects(region2))  # Output: True (since they both have b as True)
-print(region1.union(region2))       # Output: Region(True, True, True)
-print(region1.difference(region2))  # Output: Region(True, False, False)
+class RegionManager:
+    def __init__(self):
+        self.regions = self.generate_all_regions()
+    
+    def generate_all_regions(self):
+        regions = {} # regions is a dictionary with keys as tuples of booleans and values as Region objects
+        for in_a in [True, False]:
+            for in_b in [True, False]:
+                for in_c in [True, False]:
+                    region = Region(in_a, in_b, in_c)
+                    regions[region.get_sets_tuple()] = region # key is the region's tuple signature
+        return regions
+    
+    def set_habitability(self, region_tuple, status):
+        if region_tuple in self.regions:
+            self.regions[region_tuple].habitable = status
+        else:
+            raise ValueError(f"Unrecognised region: {region_tuple}")
+    
+    def get_habitability(self, region_tuple):
+        if region_tuple in self.regions:
+            return self.regions[region_tuple].habitable
+        else:
+            raise ValueError(f"Unrecognised region: {region_tuple}")
+        
+    def set_populated(self, region_tuple, status):
+        if region_tuple in self.regions:
+            self.regions[region_tuple].populated = status
+        else:
+            raise ValueError(f"Unrecognised region: {region_tuple}")
+    
+    def get_populated(self, region_tuple):
+        if region_tuple in self.regions:
+            return self.regions[region_tuple].populated
+        else:
+            raise ValueError(f"Unrecognised region: {region_tuple}")
+    
+    def get_all_regions(self):
+        return self.regions

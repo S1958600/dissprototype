@@ -30,10 +30,9 @@ class Parser:
         else:
             raise ValueError("Invalid statement: Missing entailment symbol.")
         
-        #parse antecedent and consequent as sets
+        # Parse antecedent and consequent as sets
         antecedent = self.parse_input_set(antecedent)
         consequent = self.parse_input_set(consequent)
-        
         
         # Return the parsed result as a dictionary
         return {
@@ -43,17 +42,15 @@ class Parser:
         }
     
     def parse_input_set(self, set):
+        # Strip leading and trailing whitespace
+        set = set.strip()
+        
         # Check for negation symbol (¬)
         negation = False
         if set.startswith('¬'):
             negation = True
             # Remove the negation symbol
-            set = set[1:]
-        
-        
-        # Check for valid set names (a, b, c)
-        #if set not in ['a', 'b', 'c']:
-        #    raise ValueError("Invalid set name. Use 'a', 'b', or 'c'.")
+            set = set[1:].strip()
         
         # Return the parsed result as a dictionary
         return {

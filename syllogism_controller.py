@@ -1,23 +1,34 @@
 from parser import Parser
-from syllogism_checker import SyllogismChecker
+from syllogism_evaluator import SyllogismEvaluator
 from object_creator import ObjectCreator
 
 class SyllogismController:
     def __init__(self):
         self.parser = Parser()
-        self.syllogism_checker = SyllogismChecker()
+        self.syllogism_checker = SyllogismEvaluator()
     
     def process_input(self, raw_input):
+        is_valid = False
         print("Processing input:", raw_input)
         
-        # Parse input using Parser
-        parsed_statements = self.parser.parse_input_syllogism(raw_input)
-        print("Parsed input:", parsed_statements)
+        # Parse input and create syllogism
+        syllogism = self.create_syllogism_from_input(raw_input)
+        print("Created syllogism:\n", syllogism)
         
-        # Create syllogism using ObjectCreator
-        syllogism = ObjectCreator.create_syllogism_from_input(parsed_statements)
-        print("Created syllogism:\n",syllogism)
+        # Generate blank region manager for each statement
+        region_managers = ObjectCreator.generate_region_managers(syllogism)
         
-        is_valid = self.syllogism_checker.check_syllogism(syllogism)
+        #deinfe habitability of regions
+        
+        
+        print("Valid regions:\n", region_managers)
+        
+        # Check the validity of the syllogism
+        #todo: implement this
         
         return is_valid
+    
+    def create_syllogism_from_input(self, raw_input):
+        parsed_statements = self.parser.parse_input_syllogism(raw_input) # Parse input
+        syllogism = ObjectCreator.create_syllogism_from_input(parsed_statements) # Create syllogism object
+        return syllogism
