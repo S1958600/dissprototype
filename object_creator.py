@@ -59,12 +59,11 @@ class ObjectCreator:
         
         
     @staticmethod
-    def generate_region_managers():
-        # Generate blank region manager for each statement
+    def generate_region_managers(syllogism):
+        # Generate a RegionManager for each statement in the syllogism
         region_managers = {
-            'major_premise': RegionManager(),
-            'minor_premise': RegionManager(),
-            'conclusion': RegionManager()
+            'major_premise': RegionManager(syllogism.major_premise),
+            'minor_premise': RegionManager(syllogism.minor_premise),
+            'conclusion': RegionManager(syllogism.conclusion)
         }
-        
         return region_managers

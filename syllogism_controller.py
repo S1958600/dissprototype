@@ -18,13 +18,12 @@ class SyllogismController:
         # Generate blank region manager for each statement
         region_managers = ObjectCreator.generate_region_managers(syllogism)
         
-        #deinfe habitability of regions
         
         
         print("Valid regions:\n", region_managers)
         
         # Check the validity of the syllogism
-        #todo: implement this
+
         
         return is_valid
     

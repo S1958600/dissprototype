@@ -51,8 +51,12 @@ class Region:
         )
 
 class RegionManager:
-    def __init__(self):
+    
+    # needs to be initialized a statement
+    def __init__(self, statement):
+        self.statement = statement
         self.regions = self.generate_all_regions()
+        self.evaluate_habitability()
     
     def generate_all_regions(self):
         regions = {} # regions is a dictionary with keys as tuples of booleans and values as Region objects
@@ -74,18 +78,10 @@ class RegionManager:
             return self.regions[region_tuple].habitable
         else:
             raise ValueError(f"Unrecognised region: {region_tuple}")
+    
+    def evaluate_habitability(self):
+        #TODO: Implement this method
         
-    def set_populated(self, region_tuple, status):
-        if region_tuple in self.regions:
-            self.regions[region_tuple].populated = status
-        else:
-            raise ValueError(f"Unrecognised region: {region_tuple}")
-    
-    def get_populated(self, region_tuple):
-        if region_tuple in self.regions:
-            return self.regions[region_tuple].populated
-        else:
-            raise ValueError(f"Unrecognised region: {region_tuple}")
-    
-    def get_all_regions(self):
-        return self.regions
+        for region_tuple in self.regions.keys():
+            # Example: Set habitability to True for demonstration purposes
+            self.set_habitability(region_tuple, True)
