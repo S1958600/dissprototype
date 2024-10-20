@@ -1,5 +1,6 @@
 class Parser:
-    def parse_input_syllogism(self, syllogism):
+    @staticmethod
+    def parse_input_syllogism(syllogism):
         # Split the syllogism into individual statements
         statements = syllogism.split(',')
         
@@ -8,9 +9,9 @@ class Parser:
             raise ValueError("Invalid syllogism: Must contain exactly three statements.")
         
         # Parse each statement using the parse_input_statement method
-        major_premise = self.parse_input_statement(statements[0])
-        minor_premise = self.parse_input_statement(statements[1])
-        conclusion = self.parse_input_statement(statements[2])
+        major_premise = Parser.parse_input_statement(statements[0])
+        minor_premise = Parser.parse_input_statement(statements[1])
+        conclusion = Parser.parse_input_statement(statements[2])
         
         # Return the parsed result as a dictionary
         return {
@@ -19,7 +20,8 @@ class Parser:
             'conclusion': conclusion
         }
     
-    def parse_input_statement(self, statement):
+    @staticmethod
+    def parse_input_statement(statement):
         # Check for entailment symbol (⊨ or ⊭)
         if '⊨' in statement:
             entailment = True
@@ -30,30 +32,9 @@ class Parser:
         else:
             raise ValueError("Invalid statement: Missing entailment symbol.")
         
-        # Parse antecedent and consequent as sets
-        antecedent = self.parse_input_set(antecedent)
-        consequent = self.parse_input_set(consequent)
-        
-        # Return the parsed result as a dictionary
+        # Return the parsed statement as a dictionary
         return {
-            'antecedent': antecedent,
-            'consequent': consequent,
-            'entails': entailment
-        }
-    
-    def parse_input_set(self, set):
-        # Strip leading and trailing whitespace
-        set = set.strip()
-        
-        # Check for negation symbol (¬)
-        negation = False
-        if set.startswith('¬'):
-            negation = True
-            # Remove the negation symbol
-            set = set[1:].strip()
-        
-        # Return the parsed result as a dictionary
-        return {
-            'name': set,
-            'negation': negation
+            'entailment': entailment,
+            'antecedent': antecedent.strip(),
+            'consequent': consequent.strip()
         }

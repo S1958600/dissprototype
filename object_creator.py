@@ -1,7 +1,7 @@
 from set_struct import SyllogismSet
 from statement_struct import SyllogismStatement
 from syllogism_struct import Syllogism
-from region_struct import RegionManager
+from region_manager import RegionManager
 
 class ObjectCreator:
     unique_sets = {}
