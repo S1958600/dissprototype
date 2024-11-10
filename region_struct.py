@@ -1,4 +1,5 @@
 from enum import Enum
+from set_struct import SyllogismSet
 
 class Status(Enum):
     UNDEFINED = "Undefined"
@@ -17,15 +18,22 @@ class Region:
     def __repr__(self):
         return ''.join([f"{'' if in_set else '¬'}{set_name}" for in_set, set_name in zip([self.in_a, self.in_b, self.in_c], 'ABC')])
     
-    def is_in_set(self, set_name):
+    def is_in_set(self, set_struct):
+        if not isinstance(set_struct, SyllogismSet):
+            raise ValueError("Input must be a SyllogismSet object.")
+        
+        set_name = set_struct.name
+        negation = set_struct.negation
+        
         if set_name == 'A':
-            return self.in_a
+            return not self.in_a if negation else self.in_a
         elif set_name == 'B':
-            return self.in_b
+            return not self.in_b if negation else self.in_b
         elif set_name == 'C':
-            return self.in_c
+            return not self.in_c if negation else self.in_c
         else:
             raise ValueError("Invalid set name. Use 'A', 'B', or 'C'.")
+    
     
     def get_sets_tuple(self):
         return (self.in_a, self.in_b, self.in_c)

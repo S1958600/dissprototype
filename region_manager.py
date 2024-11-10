@@ -36,6 +36,9 @@ class RegionManager:
     
     def add_statement(self, statement):
         self.statements.append(statement)
+        
+    def get_statements(self):
+        return self.statements
     
     def set_validity(self, status):
         if isinstance(status, bool):

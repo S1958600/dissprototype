@@ -16,17 +16,9 @@ class SyllogismController:
         region_managers = ObjectCreator.generate_region_managers(syllogism)
         #print("Region managers:\n", region_managers)
         
-        # Evaluate regions for each statement
-        region_managers = SyllogismEvaluator.interpret_statements(region_managers)
+        evaluation_output = SyllogismEvaluator.evaluate_syllogism(region_managers)
         
-        print("Valid regions:\n", region_managers)
-        
-        # Check the validity of the syllogism
-        
-        
-        print("Syllogism is valid:", is_valid)
-        
-        return is_valid
+        print("Evaluation output:\n", evaluation_output['outputCode'])
     
     def create_syllogism_from_input(self, raw_input):
         parsed_statements = Parser.parse_input_syllogism(raw_input) # Parse input syllogism

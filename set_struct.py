@@ -7,6 +7,6 @@ class SyllogismSet:
         return f"¬{self.name}" if self.negation else self.name
 
     def negate(self):
-        self.negation = not self.negation
-        
+        # Return a new SyllogismSet object with the negation flipped
+        return SyllogismSet(self.name, not self.negation)
 
