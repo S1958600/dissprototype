@@ -52,7 +52,7 @@ class SyllogismEvaluator:
     def determine_not_entails_status(statement, region):
         # if region is within antecedent and not in consequent
         if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
-            # then there something should exist
+            # then something could exist
             return Status.CONTAINS
         return Status.UNDEFINED
     
@@ -88,12 +88,12 @@ class SyllogismEvaluator:
             (Status.CONTAINS, Status.CONFLICT): Status.CONFLICT,
             (Status.CONTAINS, Status.UNDEFINED): Status.CONTAINS,
             (Status.CONTAINS, Status.HABITABLE): Status.CONTAINS,
-            (Status.CONTAINS, Status.UNINHABITABLE): Status.CONFLICT,
+            (Status.CONTAINS, Status.UNINHABITABLE): Status.UNINHABITABLE,
             (Status.CONTAINS, Status.CONTAINS): Status.CONTAINS,
         }
         
         # Return the combined status based on precedence
-        return precedence.get((status1, status2), precedence.get((status2, status1), Status.CONFLICT))
+        return precedence.get((status1, status2))
     
 
 
