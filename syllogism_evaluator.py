@@ -1,4 +1,5 @@
-from region_struct import RegionManager, Status
+from region_struct import Status, Region
+from region_manager import RegionManager
 
 class SyllogismEvaluator:
     
@@ -55,37 +56,45 @@ class SyllogismEvaluator:
             return Status.CONTAINS
         return Status.UNDEFINED
     
+
     @staticmethod
     def combine_status(status1, status2):
-        # Clears conflict
-        if status1 == Status.CONFLICT or status2 == Status.CONFLICT:
-            return Status.CONFLICT
-        
-        # Clears undefined
-        if status1 == Status.UNDEFINED:
-            return status2
-        if status2 == Status.UNDEFINED:
-            return status1
-        
-        # Clears habitable from s1
-        if status1 == Status.HABITABLE:
-            if status2 == Status.UNINHABITABLE:
-                return Status.CONFLICT
-            if status2 == Status.CONTAINS:
-                return Status.CONTAINS
-            return Status.HABITABLE
-        
-        # Clears uninhabitable from s1
-        if status1 == Status.UNINHABITABLE:
-            if status2 == Status.HABITABLE or status2 == Status.CONTAINS:
-                return Status.CONFLICT
-            return Status.UNINHABITABLE
+        # Define the precedence of statuses
+        precedence = {
+            (Status.CONFLICT, Status.CONFLICT): Status.CONFLICT,
+            (Status.CONFLICT, Status.UNDEFINED): Status.CONFLICT,
+            (Status.CONFLICT, Status.HABITABLE): Status.CONFLICT,
+            (Status.CONFLICT, Status.UNINHABITABLE): Status.CONFLICT,
+            (Status.CONFLICT, Status.CONTAINS): Status.CONFLICT,
             
-        # Clears Contains from s1
-        if status1 == Status.CONTAINS:
-            if status2 == Status.UNINHABITABLE:
-                return Status.CONFLICT
-            return Status.CONTAINS
+            (Status.UNDEFINED, Status.CONFLICT): Status.CONFLICT,
+            (Status.UNDEFINED, Status.UNDEFINED): Status.UNDEFINED,
+            (Status.UNDEFINED, Status.HABITABLE): Status.HABITABLE,
+            (Status.UNDEFINED, Status.UNINHABITABLE): Status.UNINHABITABLE,
+            (Status.UNDEFINED, Status.CONTAINS): Status.CONTAINS,
+            
+            (Status.HABITABLE, Status.CONFLICT): Status.CONFLICT,
+            (Status.HABITABLE, Status.UNDEFINED): Status.HABITABLE,
+            (Status.HABITABLE, Status.HABITABLE): Status.HABITABLE,
+            (Status.HABITABLE, Status.UNINHABITABLE): Status.UNINHABITABLE,
+            (Status.HABITABLE, Status.CONTAINS): Status.CONTAINS,
+            
+            (Status.UNINHABITABLE, Status.CONFLICT): Status.CONFLICT,
+            (Status.UNINHABITABLE, Status.UNDEFINED): Status.UNINHABITABLE,
+            (Status.UNINHABITABLE, Status.HABITABLE): Status.UNINHABITABLE,
+            (Status.UNINHABITABLE, Status.UNINHABITABLE): Status.UNINHABITABLE,
+            (Status.UNINHABITABLE, Status.CONTAINS): Status.UNINHABITABLE,
+            
+            (Status.CONTAINS, Status.CONFLICT): Status.CONFLICT,
+            (Status.CONTAINS, Status.UNDEFINED): Status.CONTAINS,
+            (Status.CONTAINS, Status.HABITABLE): Status.CONTAINS,
+            (Status.CONTAINS, Status.UNINHABITABLE): Status.CONFLICT,
+            (Status.CONTAINS, Status.CONTAINS): Status.CONTAINS,
+        }
+        
+        # Return the combined status based on precedence
+        return precedence.get((status1, status2), precedence.get((status2, status1), Status.CONFLICT))
+    
 
 
     @staticmethod
@@ -135,10 +144,10 @@ class SyllogismEvaluator:
         # Combine the regions from two managers and return a new manager
         combined_manager = RegionManager([])
         for region_tuple in manager1.get_all_regions().keys():
-            status1 = manager1.get_status(region_tuple)
-            status2 = manager2.get_status(region_tuple)
+            status1 = manager1.regions[region_tuple].status
+            status2 = manager2.regions[region_tuple].status
             combined_status = SyllogismEvaluator.combine_status(status1, status2)
-            combined_manager.set_habatibility(region_tuple, combined_status)
+            combined_manager.regions[region_tuple].status = combined_status
         
         # Update the validity status if there is conflict
         if Status.CONFLICT in [region.status for region in combined_manager.get_all_regions().values()]:

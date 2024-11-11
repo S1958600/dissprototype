@@ -1,5 +1,4 @@
-from region_struct import Region
-from region_struct import Habitability
+from region_struct import Region, Status
 
 class RegionManager:
     def __init__(self, statements):
@@ -16,12 +15,12 @@ class RegionManager:
                     regions[region.get_sets_tuple()] = region # key is the region's tuple signature
         return regions
     
-    def set_habitability(self, region_tuple, status):
+    def set_habitability(self, region_tuple, newStatus):
         if region_tuple in self.regions:
-            if isinstance(status, Habitability):
-                self.regions[region_tuple].habitable = status
+            if isinstance(newStatus, Status):
+                self.regions[region_tuple].status = newStatus
             else:
-                raise ValueError(f"Invalid habitability status: {status}")
+                raise ValueError(f"Invalid habitability status: {newStatus}")
         else:
             raise ValueError(f"Unrecognised region: {region_tuple}")
     
@@ -48,3 +47,12 @@ class RegionManager:
     
     def is_valid(self):
         return self.valid
+    
+    def print_regions(self):
+        for region_tuple, region in self.regions.items():
+            sets = []
+            sets.append('A' if region_tuple[0] else '')
+            sets.append('B' if region_tuple[1] else '')
+            sets.append('C' if region_tuple[2] else '')
+            sets_str = ', '.join(sets)
+            print(f"Region: ({sets_str}), Status: {region.status.name}")
