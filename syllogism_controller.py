@@ -19,6 +19,6 @@ class SyllogismController:
         # Check the validity of the syllogism
         evaluation = self.syllogism_evaluator.evaluate_syllogism(region_managers)
         print("Syllogism is :", evaluation['outputCode'])
-        evaluation['final_manager'].print_regions()
+        evaluation['premises'].print_regions()
         
         return None
