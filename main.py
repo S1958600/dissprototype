@@ -7,7 +7,7 @@ def main():
     
     #print("Started main() again")
     #control = SyllogismController()
-    control.process_input("a ⊨ b, b ⊭ c, a ⊭ c")
+    control.process_input("a ⊨ b, b ⊨ ¬c, a ⊨ c")
 
 if __name__ == "__main__":
     main()
