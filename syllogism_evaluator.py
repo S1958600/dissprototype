@@ -14,20 +14,7 @@ class SyllogismEvaluator:
         combined_manager = RegionManager(major_premise_manager.get_statements())
         combined_manager.add_statement(minor_premise_manager.get_statements()[0])
         combined_manager = SyllogismEvaluator.evaluate_status(combined_manager)
-        
-        """
-        # Check for internal conflicts in combined premises
-        if not combined_manager.is_valid():
-            outputCode = "Contradictory premises"
-            return {
-                'outputCode': outputCode,
-                'major_premise': major_premise_manager,
-                'minor_premise': minor_premise_manager,
-                'conclusion': conclusion_manager,
-                'premises': combined_manager,
-            }
-        """
-        
+               
         # Check if the conclusion fits into the combined premises
         valid_conclusion = SyllogismEvaluator.check_conclusion_validity(combined_manager, conclusion_manager.get_statements()[0])
         return {
