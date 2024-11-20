@@ -62,33 +62,33 @@ class SyllogismGUI:
         self.minor_consequent.grid(row=1, column=6, padx=5, pady=5)
         
         # Conclusion
-        self.conclusion_label = tk.Label(self.input_frame, text="Conclusion:")
-        self.conclusion_label.grid(row=2, column=0, padx=5, pady=5)
+        self.conc_label = tk.Label(self.input_frame, text="Conclusion:")
+        self.conc_label.grid(row=2, column=0, padx=5, pady=5)
         
-        self.conclusion_antecedent_neg = tk.BooleanVar(value=False)
-        self.conclusion_antecedent_neg_checkbox = tk.Checkbutton(self.input_frame, text="¬", variable=self.conclusion_antecedent_neg)
-        self.conclusion_antecedent_neg_checkbox.grid(row=2, column=1, padx=5, pady=5)
+        self.conc_antecedent_neg = tk.BooleanVar(value=False)
+        self.conc_antecedent_neg_checkbox = tk.Checkbutton(self.input_frame, text="¬", variable=self.conc_antecedent_neg)
+        self.conc_antecedent_neg_checkbox.grid(row=2, column=1, padx=5, pady=5)
         
-        self.conclusion_antecedent = tk.Entry(self.input_frame, width=5)
-        self.conclusion_antecedent.grid(row=2, column=2, padx=5, pady=5)
+        self.conc_antecedent = tk.Entry(self.input_frame, width=5)
+        self.conc_antecedent.grid(row=2, column=2, padx=5, pady=5)
         
-        self.conclusion_entailment = tk.StringVar(value="⊨")
-        self.conclusion_entailment_radio_entails = tk.Radiobutton(self.input_frame, text="⊨", variable=self.conclusion_entailment, value="⊨")
-        self.conclusion_entailment_radio_not_entails = tk.Radiobutton(self.input_frame, text="⊭", variable=self.conclusion_entailment, value="⊭")
-        self.conclusion_entailment_radio_entails.grid(row=2, column=3, padx=5, pady=5)
-        self.conclusion_entailment_radio_not_entails.grid(row=2, column=4, padx=5, pady=5)
+        self.conc_entailment = tk.StringVar(value="⊨")
+        self.conc_entailment_radio_entails = tk.Radiobutton(self.input_frame, text="⊨", variable=self.conc_entailment, value="⊨")
+        self.conc_entailment_radio_not_entails = tk.Radiobutton(self.input_frame, text="⊭", variable=self.conc_entailment, value="⊭")
+        self.conc_entailment_radio_entails.grid(row=2, column=3, padx=5, pady=5)
+        self.conc_entailment_radio_not_entails.grid(row=2, column=4, padx=5, pady=5)
         
-        self.conclusion_consequent_neg = tk.BooleanVar(value=False)
-        self.conclusion_consequent_neg_checkbox = tk.Checkbutton(self.input_frame, text="¬", variable=self.conclusion_consequent_neg)
-        self.conclusion_consequent_neg_checkbox.grid(row=2, column=5, padx=5, pady=5)
+        self.conc_consequent_neg = tk.BooleanVar(value=False)
+        self.conc_consequent_neg_checkbox = tk.Checkbutton(self.input_frame, text="¬", variable=self.conc_consequent_neg)
+        self.conc_consequent_neg_checkbox.grid(row=2, column=5, padx=5, pady=5)
         
-        self.conclusion_consequent = tk.Entry(self.input_frame, width=5)
-        self.conclusion_consequent.grid(row=2, column=6, padx=5, pady=5)
+        self.conc_consequent = tk.Entry(self.input_frame, width=5)
+        self.conc_consequent.grid(row=2, column=6, padx=5, pady=5)
         
         self.process_button = tk.Button(self.input_frame, text="Check validity", command=self.process_input)
         self.process_button.grid(row=3, column=0, columnspan=7, pady=10)
         
-        # Output frame
+        # Frame for output text / console output
         self.output_frame = tk.Frame(self.root)
         self.output_frame.pack(pady=10)
         
@@ -102,12 +102,28 @@ class SyllogismGUI:
         self.venn_frame = tk.Frame(self.root)
         self.venn_frame.pack(pady=10)
         
-        self.venn_canvas = None
+        # Premises Venn diagram frame
+        self.premises_frame = tk.Frame(self.venn_frame)
+        self.premises_frame.pack(side=tk.LEFT, padx=10)
+        
+        self.premises_label = tk.Label(self.premises_frame, text="Premises")
+        self.premises_label.pack()
+        
+        self.premises_canvas = None
+        
+        # Conclusion Venn diagram frame
+        self.conc_frame = tk.Frame(self.venn_frame)
+        self.conc_frame.pack(side=tk.RIGHT, padx=10)
+        
+        self.conc_label = tk.Label(self.conc_frame, text="Conclusion")
+        self.conc_label.pack()
+        
+        self.conc_canvas = None
     
     def process_input(self):
         major_premise = f"{'¬' if self.major_antecedent_neg.get() else ''}{self.major_antecedent.get()} {self.major_entailment.get()} {'¬' if self.major_consequent_neg.get() else ''}{self.major_consequent.get()}"
         minor_premise = f"{'¬' if self.minor_antecedent_neg.get() else ''}{self.minor_antecedent.get()} {self.minor_entailment.get()} {'¬' if self.minor_consequent_neg.get() else ''}{self.minor_consequent.get()}"
-        conclusion = f"{'¬' if self.conclusion_antecedent_neg.get() else ''}{self.conclusion_antecedent.get()} {self.conclusion_entailment.get()} {'¬' if self.conclusion_consequent_neg.get() else ''}{self.conclusion_consequent.get()}"
+        conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"
         
         raw_input = f"{major_premise}, {minor_premise}, {conclusion}"
         
@@ -124,16 +140,26 @@ class SyllogismGUI:
             # Display output code
             self.output_text.insert(tk.END, f"Syllogism is: {evaluation['outputCode']}\n")
             
-            # Display Venn diagram
-            self.display_venn_diagram(evaluation['premises'])
+            # Display Venn diagrams
+            premise_text = f"{major_premise}, {minor_premise}"
+            self.display_venn_diagrams(evaluation['premises'], evaluation['conclusion'], premise_text, conclusion)
         
         except Exception as e:
             messagebox.showerror("Processing Error", str(e))
     
-    def display_venn_diagram(self, region_manager):
-        if self.venn_canvas:
-            self.venn_canvas.get_tk_widget().pack_forget()
+    def display_venn_diagrams(self, premises_manager, conclusion_manager, premise_text, conclusion_text):
+        if self.premises_canvas:
+            self.premises_canvas.get_tk_widget().pack_forget()
+        if self.conc_canvas:
+            self.conc_canvas.get_tk_widget().pack_forget()
         
-        # Create Venn diagram using the venn_diagram module
-        self.venn_canvas = create_venn_diagram(region_manager, self.venn_frame)
-        self.venn_canvas.get_tk_widget().pack()
+        # Update labels with raw input
+        self.premises_label.config(text=f"Premises: {premise_text}")
+        self.conc_label.config(text=f"Conclusion: {conclusion_text}")
+        
+        # Create Venn diagrams using the venn_diagram module
+        self.premises_canvas = create_venn_diagram(premises_manager, self.premises_frame)
+        self.premises_canvas.get_tk_widget().pack()
+        
+        self.conc_canvas = create_venn_diagram(conclusion_manager, self.conc_frame)
+        self.conc_canvas.get_tk_widget().pack()

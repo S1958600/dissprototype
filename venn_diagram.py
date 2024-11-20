@@ -22,9 +22,9 @@ def create_venn_diagram(region_manager, master_frame):
         print(subset_label)
         
         if region.status == Status.CONTAINS:
-            venn.get_label_by_id(subset_label).set_text('O')
-        elif region.status == Status.UNINHABITABLE:
             venn.get_label_by_id(subset_label).set_text('X')
+        elif region.status == Status.UNINHABITABLE:
+            #venn.get_label_by_id(subset_label).set_text('X')
             venn.get_patch_by_id(subset_label).set_facecolor('grey')
             venn.get_patch_by_id(subset_label).set_alpha(0.5)
         
