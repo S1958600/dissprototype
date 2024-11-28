@@ -10,11 +10,11 @@ class SyllogismGUI:
         
         self.create_input_text_frame(rowIn=0)
         self.create_interactive_venn_frame(rowIn=4) 
-        self.create_output_text_frame(rowIn=5)
-        self.create_output_venn_frame(rowIn=6)
+        self.create_output_text_frame(rowIn=6)
+        self.create_output_venn_frame(rowIn=7)
         
-        # If input not processed then the output boxes remain empty
-        self.process_input()
+        # If input not processed then the output boxes dont show
+        self.process_syllogism_input()
 
     def create_input_text_frame(self, rowIn):
         self.input_frame = tk.Frame(self.root)
@@ -24,7 +24,7 @@ class SyllogismGUI:
         self.create_premise_row("Minor Premise:", rowIn+1, "B", "C", 1)
         self.create_premise_row("Conclusion:", rowIn+2, "A", "C", 2)
         
-        self.process_button = tk.Button(self.input_frame, text="Check validity", command=self.process_input)
+        self.process_button = tk.Button(self.input_frame, text="Display output Venn Diagram", command=self.process_syllogism_input)
         self.process_button.grid(row=rowIn+3, column=0, columnspan=7, pady=10)
 
     def create_premise_row(self, label_text, row, antecedent_default, consequent_default, case_code):
@@ -38,8 +38,8 @@ class SyllogismGUI:
         antecedent_entry.insert(0, antecedent_default)
         
         entailment_var = tk.StringVar(value="⊨")
-        tk.Radiobutton(self.input_frame, text="⊨", variable=entailment_var, value="⊨").grid(row=row, column=3, padx=5, pady=5)
-        tk.Radiobutton(self.input_frame, text="⊭", variable=entailment_var, value="⊭").grid(row=row, column=4, padx=5, pady=5)
+        tk.Radiobutton(self.input_frame, text="⊨", variable=entailment_var, value="⊨").grid(row=row, column=3, padx=3, pady=5)
+        tk.Radiobutton(self.input_frame, text="⊭", variable=entailment_var, value="⊭").grid(row=row, column=4, padx=3, pady=5)
         
         consequent_neg_var = tk.BooleanVar(value=False)
         tk.Checkbutton(self.input_frame, text="¬", variable=consequent_neg_var).grid(row=row, column=5, padx=5, pady=5)
@@ -67,12 +67,7 @@ class SyllogismGUI:
             self.conc_consequent_neg = consequent_neg_var
             self.conc_consequent = consequent_entry
 
-    def create_interactive_venn_frame(self, rowIn):
-        self.interactive_frame = tk.Frame(self.root)
-        self.interactive_frame.grid(row=rowIn, column=0, padx=10, pady=10)
-        
-        self.create_interactive_venn_diagram_frame("Interactive Premises", self.interactive_frame, rowIn, 0)
-        self.create_interactive_venn_diagram_frame("Interactive Conclusion", self.interactive_frame, rowIn, 1)
+
 
     def create_output_text_frame(self, rowIn):
         self.output_frame = tk.Frame(self.root)
@@ -83,28 +78,53 @@ class SyllogismGUI:
         
         self.output_text = tk.Text(self.output_frame, height=2, width=60)
         self.output_text.pack(expand=True, fill="both")
-
-    def create_output_venn_frame(self, rowIn):
-        self.output_venn_frame = tk.Frame(self.root)
-        self.output_venn_frame.grid(row=rowIn, column=0, padx=10, pady=10)
+    
+    # Make a frame for interactive venn diagrams - takes up two additional columns for radio buttons and button
+    def create_interactive_venn_frame(self, rowIn):
+        self.interactive_frame = tk.Frame(self.root)
+        self.interactive_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
-        self.create_output_venn_diagram_frame("Premises", self.output_venn_frame, side=tk.LEFT)
-        self.create_output_venn_diagram_frame("Conclusion", self.output_venn_frame, side=tk.RIGHT)
+        self.region_status = tk.StringVar(value="habitable")
+        
+        self.create_interactive_venn_diagram("Interactive Premises", self.interactive_frame, rowIn, 0)
+        self.create_interactive_venn_diagram("Interactive Conclusion", self.interactive_frame, rowIn, 1)   
+             
+        radio_frame = tk.Frame(self.interactive_frame)
+        radio_frame.grid(row=rowIn+1, column=0, padx=10, pady=10)
+        
+        tk.Radiobutton(radio_frame, text="Habitable", variable=self.region_status, value="habitable").grid(row=rowIn+1, column=0, padx=5)
+        tk.Radiobutton(radio_frame, text="Uninhabitable", variable=self.region_status, value="uninhabitable").grid(row=rowIn+1, column=1, padx=5)
+        tk.Radiobutton(radio_frame, text="Contains", variable=self.region_status, value="contains").grid(row=rowIn+1, column=2, padx=5)
+        
+        self.check_button = tk.Button(self.interactive_frame, text="Check venn diagram against syllogism", command=self.process_venn_input)
+        self.check_button.grid(row=rowIn+2, column=0, columnspan=2, pady=10)
 
-    def create_interactive_venn_diagram_frame(self, title, parent_frame, rowIn, column):
+
+        
+    # Makes a single interactive venn diagram
+    def create_interactive_venn_diagram(self, title, parent_frame, rowIn, column):
         frame = tk.Frame(parent_frame)
         frame.grid(row=rowIn, column=column, padx=10, pady=10)
         
         label = tk.Label(frame, text=title, anchor="center")
         label.pack()
         
-        canvas = gen_matplot_venn_interactive(frame)
+        canvas = gen_matplot_venn_interactive(frame, self.region_status)
         canvas.get_tk_widget().pack(expand=True, fill="both")
         
         setattr(self, f"{title.lower().replace(' ', '_')}_frame", frame)
         setattr(self, f"{title.lower().replace(' ', '_')}_canvas", canvas)
-
-    def create_output_venn_diagram_frame(self, title, parent_frame, side):
+        
+    # Make a frame for output venn diagrams
+    def create_output_venn_frame(self, rowIn):
+        self.output_venn_frame = tk.Frame(self.root)
+        self.output_venn_frame.grid(row=rowIn, column=0, padx=10, pady=10)
+        
+        self.create_output_venn_diagram("Premises", self.output_venn_frame, side=tk.LEFT)
+        self.create_output_venn_diagram("Conclusion", self.output_venn_frame, side=tk.RIGHT)
+        
+    # Makes a single output venn diagram
+    def create_output_venn_diagram(self, title, parent_frame, side):
         frame = tk.Frame(parent_frame)
         frame.pack(side=side, padx=10, expand=True, fill="both")
         
@@ -115,7 +135,7 @@ class SyllogismGUI:
         setattr(self, f"{title.lower()}_label", label)
         setattr(self, f"{title.lower()}_canvas", None)
 
-    def process_input(self):
+    def process_syllogism_input(self):
         major_premise = f"{'¬' if self.major_antecedent_neg.get() else ''}{self.major_antecedent.get()} {self.major_entailment.get()} {'¬' if self.major_consequent_neg.get() else ''}{self.major_consequent.get()}"
         minor_premise = f"{'¬' if self.minor_antecedent_neg.get() else ''}{self.minor_antecedent.get()} {self.minor_entailment.get()} {'¬' if self.minor_consequent_neg.get() else ''}{self.minor_consequent.get()}"
         conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"
@@ -129,7 +149,7 @@ class SyllogismGUI:
         self.output_text.delete(1.0, tk.END)
         
         try:
-            evaluation = self.main_controller.process_input(raw_input)
+            evaluation = self.main_controller.process_syllogism_input(raw_input)
             self.output_text.insert(tk.END, f"Syllogism is: {evaluation['outputCode']}\n")
             premise_text = f"{major_premise}, {minor_premise}"
             self.display_venn_diagrams(evaluation['premises'], evaluation['conclusion'], premise_text, conclusion)
@@ -151,3 +171,6 @@ class SyllogismGUI:
         
         self.conclusion_canvas = gen_matplot_venn_output(conclusion_manager, self.conclusion_frame)
         self.conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
+        
+    def process_venn_input(self):
+        pass

@@ -10,8 +10,8 @@ class MainController:
     def run(self):
         self.root.mainloop()
     
-    def process_input(self, raw_input):
-        return SyllogismController.process_input(raw_input)
+    def process_syllogism_input(self, raw_input):
+        return SyllogismController.process_syllogism_input(raw_input)
 
 # This is the main entry point for the program
 if __name__ == "__main__":  # If this file is being run as the main

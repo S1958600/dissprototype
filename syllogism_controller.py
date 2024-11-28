@@ -3,7 +3,7 @@ from syllogism_evaluator import SyllogismEvaluator
 
 class SyllogismController:
     @staticmethod
-    def process_input(raw_input):
+    def process_syllogism_input(raw_input):
         print("Processing input:", raw_input)
         
         # Parse input and create syllogism
