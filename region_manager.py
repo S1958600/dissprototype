@@ -56,3 +56,7 @@ class RegionManager:
             sets.append('C' if region_tuple[2] else '')
             sets_str = ', '.join(sets)
             print(f"Region: ({sets_str}), Status: {region.status.name}")
+            
+    def print_statements(self):
+        for statement in self.statements:
+            print(statement)

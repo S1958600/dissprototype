@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from venn_diagram import gen_matplot_venn_output, gen_matplot_venn_interactive
+from venn_diagram import gen_matplot_venn_output, gen_matplot_venn_interactive, generate_region_manager_from_venn
 
 class SyllogismGUI:
     def __init__(self, root, main_controller):
@@ -67,8 +67,6 @@ class SyllogismGUI:
             self.conc_consequent_neg = consequent_neg_var
             self.conc_consequent = consequent_entry
 
-
-
     def create_output_text_frame(self, rowIn):
         self.output_frame = tk.Frame(self.root)
         self.output_frame.grid(row=rowIn, column=0, padx=10, pady=10)
@@ -79,7 +77,7 @@ class SyllogismGUI:
         self.output_text = tk.Text(self.output_frame, height=2, width=60)
         self.output_text.pack(expand=True, fill="both")
     
-    # Make a frame for interactive venn diagrams - takes up two additional columns for radio buttons and button
+    # Make a frame for interactive venn diagrams - takes up two additional rows for radio buttons and button
     def create_interactive_venn_frame(self, rowIn):
         self.interactive_frame = tk.Frame(self.root)
         self.interactive_frame.grid(row=rowIn, column=0, padx=10, pady=10)
@@ -99,8 +97,6 @@ class SyllogismGUI:
         self.check_button = tk.Button(self.interactive_frame, text="Check venn diagram against syllogism", command=self.process_venn_input)
         self.check_button.grid(row=rowIn+2, column=0, columnspan=2, pady=10)
 
-
-        
     # Makes a single interactive venn diagram
     def create_interactive_venn_diagram(self, title, parent_frame, rowIn, column):
         frame = tk.Frame(parent_frame)
@@ -109,11 +105,12 @@ class SyllogismGUI:
         label = tk.Label(frame, text=title, anchor="center")
         label.pack()
         
-        canvas = gen_matplot_venn_interactive(frame, self.region_status)
+        canvas, venn = gen_matplot_venn_interactive(frame, self.region_status)
         canvas.get_tk_widget().pack(expand=True, fill="both")
         
         setattr(self, f"{title.lower().replace(' ', '_')}_frame", frame)
         setattr(self, f"{title.lower().replace(' ', '_')}_canvas", canvas)
+        setattr(self, f"{title.lower().replace(' ', '_')}_venn", venn)
         
     # Make a frame for output venn diagrams
     def create_output_venn_frame(self, rowIn):
@@ -135,16 +132,25 @@ class SyllogismGUI:
         setattr(self, f"{title.lower()}_label", label)
         setattr(self, f"{title.lower()}_canvas", None)
 
-    def process_syllogism_input(self):
+    def get_raw_syllogism_input(self):
         major_premise = f"{'¬' if self.major_antecedent_neg.get() else ''}{self.major_antecedent.get()} {self.major_entailment.get()} {'¬' if self.major_consequent_neg.get() else ''}{self.major_consequent.get()}"
         minor_premise = f"{'¬' if self.minor_antecedent_neg.get() else ''}{self.minor_antecedent.get()} {self.minor_entailment.get()} {'¬' if self.minor_consequent_neg.get() else ''}{self.minor_consequent.get()}"
         conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"
         
-        raw_input = f"{major_premise}, {minor_premise}, {conclusion}"
+        out = f"{major_premise}, {minor_premise}, {conclusion}"
+        return out
+
+    def process_syllogism_input(self):
+        raw_input = self.get_raw_syllogism_input()
         
         if not raw_input:
             messagebox.showerror("Input Error", "Please enter a syllogism.")
             return
+        
+        #get the strings needed for the labels
+        major_premise = f"{'¬' if self.major_antecedent_neg.get() else ''}{self.major_antecedent.get()} {self.major_entailment.get()} {'¬' if self.major_consequent_neg.get() else ''}{self.major_consequent.get()}"
+        minor_premise = f"{'¬' if self.minor_antecedent_neg.get() else ''}{self.minor_antecedent.get()} {self.minor_entailment.get()} {'¬' if self.minor_consequent_neg.get() else ''}{self.minor_consequent.get()}"
+        conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"
         
         self.output_text.delete(1.0, tk.END)
         
@@ -173,4 +179,27 @@ class SyllogismGUI:
         self.conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
         
     def process_venn_input(self):
-        pass
+        # Retrieve the Venn diagram objects
+        premises_venn = self.interactive_premises_venn
+        conclusion_venn = self.interactive_conclusion_venn
+        
+        # Generate region managers from the Venn diagrams
+        premises_manager = generate_region_manager_from_venn(premises_venn)
+        conclusion_manager = generate_region_manager_from_venn(conclusion_venn)
+        
+        #premises_manager.print_regions()
+        #conclusion_manager.print_regions()
+        
+        # Use the generated region managers for further processing
+        try:
+            conflicts = self.main_controller.process_venn_input(
+                raw_syllogism=self.get_raw_syllogism_input(),
+                input_premises_manager=premises_manager,
+                input_conclusion_manager=conclusion_manager
+            )
+            if conflicts:
+                messagebox.showinfo("Conflicts Found", f"Conflicts: {conflicts}")
+            else:
+                messagebox.showinfo("No Conflicts", "No conflicts found.")
+        except Exception as e:
+            messagebox.showerror("Processing Error", str(e))

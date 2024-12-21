@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib_venn import venn3
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from region_manager import RegionManager
 from region_struct import Status
 
 def gen_matplot_venn_output(region_manager, master_frame):
@@ -21,12 +22,14 @@ def gen_matplot_venn_output(region_manager, master_frame):
         subset_label = ''.join(['1' if x else '0' for x in region_tuple])
         #print(subset_label)
         
-        if region.status == Status.CONTAINS:
-            venn.get_label_by_id(subset_label).set_text('X')
-        elif region.status == Status.UNINHABITABLE:
-            #venn.get_label_by_id(subset_label).set_text('X')
-            venn.get_patch_by_id(subset_label).set_facecolor('grey')
-            venn.get_patch_by_id(subset_label).set_alpha(0.5)
+        #if updating region that is outside of all sets then pass
+        if not subset_label == '000':
+            if region.status == Status.CONTAINS:
+                venn.get_label_by_id(subset_label).set_text('X')
+            elif region.status == Status.UNINHABITABLE:
+                #venn.get_label_by_id(subset_label).set_text('X')
+                venn.get_patch_by_id(subset_label).set_facecolor('grey')
+                venn.get_patch_by_id(subset_label).set_alpha(0.5)
         
     
     
@@ -70,4 +73,23 @@ def gen_matplot_venn_interactive(master_frame, region_status_var):
     
     canvas = FigureCanvasTkAgg(fig, master=master_frame)
     canvas.draw()
-    return canvas
+    return canvas, venn
+
+def generate_region_manager_from_venn(venn):
+    region_manager = RegionManager([])  # statements not needed for input venn
+    
+    # Create a region for each subset
+    for subset in ('100', '010', '001', '110', '101', '011', '111'):
+        region_tuple = tuple(int(x) for x in subset)
+        
+        if venn.get_label_by_id(subset).get_text() == 'X':
+            status = Status.CONTAINS
+        elif venn.get_patch_by_id(subset).get_facecolor() == (0.5019607843137255, 0.5019607843137255, 0.5019607843137255, 0.4):
+            # ^ this is the value produced by set colout to grey
+            status = Status.UNINHABITABLE
+        else:
+            status = Status.HABITABLE
+        
+        region_manager.set_habitability(region_tuple, status)
+    
+    return region_manager

@@ -12,6 +12,10 @@ class MainController:
     
     def process_syllogism_input(self, raw_input):
         return SyllogismController.process_syllogism_input(raw_input)
+    
+    def process_venn_input(self, raw_syllogism, input_premises_manager, input_conclusion_manager):
+        #returns a list of regions that are different between the two managers
+        return SyllogismController.process_venn_input(raw_syllogism, input_premises_manager, input_conclusion_manager)
 
 # This is the main entry point for the program
 if __name__ == "__main__":  # If this file is being run as the main

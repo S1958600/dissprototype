@@ -12,7 +12,7 @@ def main():
     
     #SyllogismController().process_input("a ⊨ b, b ⊨ c, a ⊨ c")
     main_controller = MainController()
-    main_controller.process_input("a ⊨ b, b ⊨ c, a ⊨ c")
+    main_controller.process_syllogism_input("a ⊨ b, b ⊨ c, a ⊨ c")
     
 
 if __name__ == "__main__":
