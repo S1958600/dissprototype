@@ -171,36 +171,16 @@ class SyllogismEvaluator:
         
         return valid_return
     
-
-    @staticmethod
-    def compare_region_managers(input_manager, complete_manager):
-        # check all of the regions in the input manager against the complete one to see if there is conflict
-        for region_tuple, region in input_manager.regions.items():
-            if region_tuple in complete_manager.regions:
-                if not SyllogismEvaluator.region_status_fits(region, complete_manager.regions[region_tuple]):
-                    region.set_status(Status.CONFLICT)
-        return input_manager
-    
-    @staticmethod
-    def region_status_fits(input_region, complete_region):
-        # Check if the status of the input region aggrees with the status of the complete region
-        if input_region.status == Status.HABITABLE and complete_region.status != Status.HABITABLE:
-            return False
-        if input_region.status == Status.UNINHABITABLE and complete_region.status != Status.UNINHABITABLE:
-            return False
-        if input_region.status == Status.CONTAINS and complete_region.status != Status.CONTAINS:
-            return False
-        return True
     
     def check_manager_for_conflict(input_manager):
         #For each statement check for any regions that conflict with the statements
         for statement in input_manager.get_statements():
             if statement.entails:
-                input_manager = SyllogismEvaluator.check_for_entails_conflict(input_manager, statement)
+                output_manager = SyllogismEvaluator.check_for_entails_conflict(input_manager, statement)
             else:
-                input_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement)
+                output_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement)
         
-        return input_manager
+        return output_manager
     
     def check_for_entails_conflict(input_manager, statement):
         for region_tuple, region in input_manager.regions.items():
@@ -208,6 +188,7 @@ class SyllogismEvaluator:
                 if not region.is_in_set(statement.consequent):
                     if region.status != Status.UNINHABITABLE:
                         region.set_status(Status.CONFLICT)
+                        input_manager.set_validity(False)
         
         return input_manager
     
@@ -223,5 +204,6 @@ class SyllogismEvaluator:
                     else:
                         first_not_contains_region.set_status(Status.CONFLICT)
                         region.set_status(Status.CONFLICT)
+                        input_manager.set_validity(False)
         
         return input_manager

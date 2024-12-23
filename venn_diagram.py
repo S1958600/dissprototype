@@ -30,11 +30,15 @@ def gen_matplot_venn_output(region_manager, master_frame):
                 #venn.get_label_by_id(subset_label).set_text('X')
                 venn.get_patch_by_id(subset_label).set_facecolor('grey')
                 venn.get_patch_by_id(subset_label).set_alpha(0.5)
+            elif region.status == Status.CONFLICT:
+                venn.get_patch_by_id(subset_label).set_facecolor('red')
+                venn.get_label_by_id(subset_label).set_text('!')
         
     
     
     canvas = FigureCanvasTkAgg(fig, master=master_frame)
     canvas.draw()
+    plt.close(fig)
     return canvas
 
 
@@ -73,6 +77,7 @@ def gen_matplot_venn_interactive(master_frame, region_status_var):
     
     canvas = FigureCanvasTkAgg(fig, master=master_frame)
     canvas.draw()
+    plt.close(fig)
     return canvas, venn
 
 def generate_region_manager_from_venn(venn):

@@ -153,7 +153,6 @@ class SyllogismGUI:
         conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"
         
         self.output_text.delete(1.0, tk.END)
-        
         try:
             evaluation = self.main_controller.process_syllogism_input(raw_input)
             self.output_text.insert(tk.END, f"Syllogism is: {evaluation['outputCode']}\n")
@@ -177,7 +176,7 @@ class SyllogismGUI:
         
         self.conclusion_canvas = gen_matplot_venn_output(conclusion_manager, self.conclusion_frame)
         self.conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
-        
+            
     def process_venn_input(self):
         # Retrieve the Venn diagram objects
         premises_venn = self.interactive_premises_venn
@@ -187,19 +186,21 @@ class SyllogismGUI:
         premises_manager = generate_region_manager_from_venn(premises_venn)
         conclusion_manager = generate_region_manager_from_venn(conclusion_venn)
         
-        #premises_manager.print_regions()
-        #conclusion_manager.print_regions()
-        
         # Use the generated region managers for further processing
         try:
-            conflicts = self.main_controller.process_venn_input(
-                raw_syllogism=self.get_raw_syllogism_input(),
-                input_premises_manager=premises_manager,
-                input_conclusion_manager=conclusion_manager
-            )
-            if conflicts:
-                messagebox.showinfo("Conflicts Found", f"Conflicts: {conflicts}")
-            else:
-                messagebox.showinfo("No Conflicts", "No conflicts found.")
+            premises_manager, conclusion_manager = self.main_controller.process_venn_input(self.get_raw_syllogism_input(), premises_manager, conclusion_manager)
+            self.display_venn_diagrams(premises_manager, conclusion_manager, "Interactive Premises", "Interactive Conclusion")
+            
+            # Output text
+            self.output_text.delete(1.0, tk.END)
+            if premises_manager.is_valid() and conclusion_manager.is_valid():
+                self.output_text.insert(tk.END, "The Venn diagrams correctly represent the syllogism.")
+            elif premises_manager.is_valid() and not conclusion_manager.is_valid():
+                self.output_text.insert(tk.END, "The conclusion Venn diagram breaks the syllogism statement.")
+            elif not premises_manager.is_valid() and conclusion_manager.is_valid():
+                self.output_text.insert(tk.END, "The premises Venn diagram breaks the syllogism statement.")
+            elif not premises_manager.is_valid() and not conclusion_manager.is_valid():
+                self.output_text.insert(tk.END, "Both the premises and conclusion Venn diagrams break the syllogism statement.")
+            
         except Exception as e:
             messagebox.showerror("Processing Error", str(e))

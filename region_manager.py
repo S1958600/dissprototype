@@ -48,6 +48,7 @@ class RegionManager:
     def is_valid(self):
         return self.valid
     
+    
     def print_regions(self):
         for region_tuple, region in self.regions.items():
             sets = []
