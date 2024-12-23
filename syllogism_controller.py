@@ -35,7 +35,7 @@ class SyllogismController:
         
                         
         # Compare the input managers against the syllogism statements
-        input_premises_manager = SyllogismEvaluator.check_manager_for_conflict(input_premises_manager)
-        input_conclusion_manager = SyllogismEvaluator.check_manager_for_conflict(input_conclusion_manager)
+        input_premises_manager = SyllogismEvaluator.check_manager_for_conflict(input_premises_manager, evaluation['conclusion'], evaluation['outputCode'])
+        input_conclusion_manager = SyllogismEvaluator.check_manager_for_conflict(input_conclusion_manager, evaluation['premises'], evaluation['outputCode'])
         
         return input_premises_manager, input_conclusion_manager

@@ -1,6 +1,8 @@
 from region_struct import Status, Region
 from region_manager import RegionManager
 
+from copy import deepcopy
+
 class SyllogismEvaluator:
     
     @staticmethod
@@ -16,7 +18,12 @@ class SyllogismEvaluator:
         combined_manager = SyllogismEvaluator.evaluate_status(combined_manager)
                
         # Check if the conclusion fits into the combined premises
-        valid_conclusion = SyllogismEvaluator.check_conclusion_validity(combined_manager, conclusion_manager.get_statements()[0])
+        valid_conclusion, replacement_premises_manager = SyllogismEvaluator.check_conclusion_validity(combined_manager, conclusion_manager.get_statements()[0])
+        
+        # Use the replacement premises manager if one is returned
+        if replacement_premises_manager is not None:
+            combined_manager = replacement_premises_manager
+        
         return {
             'outputCode': valid_conclusion,
             'major_premise': major_premise_manager,
@@ -149,36 +156,71 @@ class SyllogismEvaluator:
     
     @staticmethod
     def check_conclusion_validity(combined_manager, conclusion_statement):
+        valid_return = True  # Assume valid and search for counterexample
+        replacement_premises_manager = None
+        
         if conclusion_statement.entails:
-            valid_return = True  # Assume valid and search for counterexample
             for region_tuple, region in combined_manager.get_all_regions().items():
                 # Search for regions that break the entailment
                 if region.is_in_set(conclusion_statement.antecedent):
                     if not region.is_in_set(conclusion_statement.consequent):
-                        # Only invalid if the region is explicitly habitable or contains
-                        if region.status == Status.HABITABLE or region.status == Status.CONTAINS:
+                        # Region must be uninhabitable if it is not in the consequent
+                        if region.status != Status.UNINHABITABLE:
                             valid_return = False
                             break
+                    #else: # If the region is in the consequent, it must be habitable
+                    #    if region.status != Status.HABITABLE:
+                    #        valid_return = False
         else:
-            valid_return = False  # Assume invalid and search for proof of validity
-            for region_tuple, region in combined_manager.get_all_regions().items():
-                if region.is_in_set(conclusion_statement.antecedent):
-                    if not region.is_in_set(conclusion_statement.consequent):
-                        # Only valid if the region is explicitly contains
-                        if region.status == Status.CONTAINS:
-                            valid_return = True
-                            break
-        
-        return valid_return
+            possible_managers = SyllogismEvaluator.generate_permutation_managers(combined_manager)
+            for possible_manager in possible_managers:
+                permutation_valid = False
+                for region_tuple, region in possible_manager.get_all_regions().items():
+                    if region.is_in_set(conclusion_statement.antecedent) and not region.is_in_set(conclusion_statement.consequent):
+                            if region.status == Status.CONTAINS:
+                                # Found an example where conclusion is still true - skip to next manager
+                                permutation_valid = True
+                                break   
+                if not permutation_valid:
+                    valid_return = False
+                    replacement_premises_manager = possible_manager
+                    break
+        return valid_return, replacement_premises_manager
+    
+    def generate_permutation_managers(combined_manager):
+        # generates all region managers that are valid combinations of contains under the statement(s)
+        return_permutation_managers = [combined_manager]
+
+        for region_tuple, region in combined_manager.get_all_regions().items():
+            if region.status == Status.CONTAINS:
+                new_manager = deepcopy(combined_manager)
+                new_manager.regions[region_tuple].status = Status.UNDEFINED
+                if SyllogismEvaluator.check_permutation_validity(new_manager):
+                    return_permutation_managers.extend(SyllogismEvaluator.generate_permutation_managers(deepcopy(new_manager)))
+                new_manager.regions[region_tuple].status = Status.CONTAINS
+        return return_permutation_managers
+                
+    def check_permutation_validity(manager):
+        # Check if the manager is valid - only checks not entails statements
+        for statement in manager.get_statements():
+            if not statement.entails:
+                for region_tuple, region in manager.regions.items():
+                    if region.is_in_set(statement.antecedent):
+                        if not region.is_in_set(statement.consequent):
+                            if region.status == Status.CONTAINS:
+                                return True
+        return False
     
     
-    def check_manager_for_conflict(input_manager):
+    #Check for conflicts in an input manager. Needs other manager to see which contains regions are needed
+    def check_manager_for_conflict(input_manager, other_manager, evaluation_true):
         #For each statement check for any regions that conflict with the statements
         for statement in input_manager.get_statements():
             if statement.entails:
                 output_manager = SyllogismEvaluator.check_for_entails_conflict(input_manager, statement)
             else:
-                output_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement)
+                # Not entails statements are more complicated to mark - see code
+                output_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true)
         
         return output_manager
     
@@ -192,18 +234,38 @@ class SyllogismEvaluator:
         
         return input_manager
     
-    def check_for_not_entails_conflict(input_manager, statement):
-        # Only one relevant region needs to have contains status to avoid conflict
-        first_not_contains_region = None
-        
-        for region_tuple, region in input_manager.regions.items():
-            if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
-                if region.status != Status.CONTAINS:
-                    if first_not_contains_region is None:
-                        first_not_contains_region = region
-                    else:
-                        first_not_contains_region.set_status(Status.CONFLICT)
+    def check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true):
+        # If the syllogsim is true then at least one contains region from the other manager must be contains in the input manager
+        if evaluation_true:
+            # Tuples of regions that are contains in the other manager
+            other_contains = SyllogismEvaluator.find_other_contains(other_manager)
+            #If any region shared between the input manager and contains list is contains then input manager is unconflicted
+            contains_found = False
+            for region_tuple, region in input_manager.regions.items():
+                if region_tuple in other_contains:
+                    if region.status == Status.CONTAINS:
+                        contains_found = True
+                        break
+            if not contains_found:
+                #If no shared regions are contains, mark all shared regions as conflicts
+                for region_tuple, region in input_manager.regions.items():
+                    if region_tuple in other_contains and region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
+                        region.set_status(Status.CONFLICT)
+                        input_manager.set_validity(False)
+        else:
+            # If evaluation returned false, any region that could be contains should be contains
+            for region_tuple, region in input_manager.regions.items():
+                if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
+                    if region.status != Status.CONTAINS:
                         region.set_status(Status.CONFLICT)
                         input_manager.set_validity(False)
         
         return input_manager
+
+    def find_other_contains(other_manager):
+        # Finds all of the contains regions from the other manager
+        other_contains = []
+        for region_tuple, region in other_manager.regions.items():
+            if region.status == Status.CONTAINS:
+                other_contains.append(region_tuple)
+        return other_contains
