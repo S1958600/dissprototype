@@ -7,25 +7,39 @@ class SyllogismGUI:
         self.root = root
         self.root.title("Syllogism Evaluator")
         self.main_controller = main_controller
+        self.row_counter = 0
         
-        self.create_input_text_frame(rowIn=0)
-        self.create_interactive_venn_frame(rowIn=4) 
-        self.create_output_text_frame(rowIn=6)
-        self.create_output_venn_frame(rowIn=7)
+        self.create_input_text_frame()
+        self.create_interactive_venn_frame() 
+        self.create_output_text_frame()
+        self.create_output_venn_frame()
         
         # If input not processed then the output boxes dont show
         self.process_syllogism_input()
 
-    def create_input_text_frame(self, rowIn):
+    def create_set_name_input(self):
+        rowIn = self.row_counter
+        
+        
+        
+        
+        self.row_counter += 1
+
+
+    def create_input_text_frame(self):
+        rowIn = self.row_counter
         self.input_frame = tk.Frame(self.root)
         self.input_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
+        # case code 0 = major premise, 1 = minor premise, 2 = conclusion
         self.create_premise_row("Major Premise:", rowIn, "A", "B", 0)
         self.create_premise_row("Minor Premise:", rowIn+1, "B", "C", 1)
         self.create_premise_row("Conclusion:", rowIn+2, "A", "C", 2)
         
         self.process_button = tk.Button(self.input_frame, text="Display output Venn Diagram", command=self.process_syllogism_input)
         self.process_button.grid(row=rowIn+3, column=0, columnspan=7, pady=10)
+        
+        self.row_counter += 4
 
     def create_premise_row(self, label_text, row, antecedent_default, consequent_default, case_code):
         tk.Label(self.input_frame, text=label_text, anchor="center").grid(row=row, column=0, padx=5, pady=5)
@@ -67,7 +81,9 @@ class SyllogismGUI:
             self.conc_consequent_neg = consequent_neg_var
             self.conc_consequent = consequent_entry
 
-    def create_output_text_frame(self, rowIn):
+    def create_output_text_frame(self):
+        rowIn = self.row_counter
+        
         self.output_frame = tk.Frame(self.root)
         self.output_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
@@ -76,9 +92,13 @@ class SyllogismGUI:
         
         self.output_text = tk.Text(self.output_frame, height=2, width=60)
         self.output_text.pack(expand=True, fill="both")
+        
+        self.row_counter += 1
     
     # Make a frame for interactive venn diagrams - takes up two additional rows for radio buttons and button
-    def create_interactive_venn_frame(self, rowIn):
+    def create_interactive_venn_frame(self):
+        rowIn = self.row_counter
+        
         self.interactive_frame = tk.Frame(self.root)
         self.interactive_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
@@ -96,6 +116,8 @@ class SyllogismGUI:
         
         self.check_button = tk.Button(self.interactive_frame, text="Check venn diagram against syllogism", command=self.process_venn_input)
         self.check_button.grid(row=rowIn+2, column=0, columnspan=2, pady=10)
+        
+        self.row_counter += 3
 
     # Makes a single interactive venn diagram
     def create_interactive_venn_diagram(self, title, parent_frame, rowIn, column):
@@ -113,12 +135,16 @@ class SyllogismGUI:
         setattr(self, f"{title.lower().replace(' ', '_')}_venn", venn)
         
     # Make a frame for output venn diagrams
-    def create_output_venn_frame(self, rowIn):
+    def create_output_venn_frame(self):
+        rowIn = self.row_counter
+        
         self.output_venn_frame = tk.Frame(self.root)
         self.output_venn_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
         self.create_output_venn_diagram("Premises", self.output_venn_frame, side=tk.LEFT)
         self.create_output_venn_diagram("Conclusion", self.output_venn_frame, side=tk.RIGHT)
+        
+        self.row_counter += 1
         
     # Makes a single output venn diagram
     def create_output_venn_diagram(self, title, parent_frame, side):
@@ -133,6 +159,7 @@ class SyllogismGUI:
         setattr(self, f"{title.lower()}_canvas", None)
 
     def get_raw_syllogism_input(self):
+        #construct a plain text syllogism from the input fields
         major_premise = f"{'¬' if self.major_antecedent_neg.get() else ''}{self.major_antecedent.get()} {self.major_entailment.get()} {'¬' if self.major_consequent_neg.get() else ''}{self.major_consequent.get()}"
         minor_premise = f"{'¬' if self.minor_antecedent_neg.get() else ''}{self.minor_antecedent.get()} {self.minor_entailment.get()} {'¬' if self.minor_consequent_neg.get() else ''}{self.minor_consequent.get()}"
         conclusion = f"{'¬' if self.conc_antecedent_neg.get() else ''}{self.conc_antecedent.get()} {self.conc_entailment.get()} {'¬' if self.conc_consequent_neg.get() else ''}{self.conc_consequent.get()}"

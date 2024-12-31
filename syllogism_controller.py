@@ -19,6 +19,9 @@ class SyllogismController:
         #print("Syllogism is:", evaluation['outputCode'])
         #evaluation['premises'].print_regions()
         
+        #print("Combined region manager regions:")
+        #evaluation['premises'].print_regions()
+        
         return evaluation
     
     @staticmethod
