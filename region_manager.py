@@ -39,6 +39,12 @@ class RegionManager:
     def get_statements(self):
         return self.statements
     
+    def get_other_statement(self, statement):
+        if statement in self.statements:
+            return self.statements[1] if statement == self.statements[0] else self.statements[0]
+        else:
+            raise ValueError(f"Unrecognised statement: {statement}")
+    
     def set_validity(self, status):
         if isinstance(status, bool):
             self.valid = status

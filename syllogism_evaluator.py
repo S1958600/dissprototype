@@ -212,15 +212,21 @@ class SyllogismEvaluator:
         return False
     
     
-    #Check for conflicts in an input manager. Needs other manager to see which contains regions are needed
+    #Check for conflicts in an input manager. Needs manager from other diagram to see which contains regions are needed
     def check_manager_for_conflict(input_manager, other_manager, evaluation_true):
         #For each statement check for any regions that conflict with the statements
         for statement in input_manager.get_statements():
             if statement.entails:
                 output_manager = SyllogismEvaluator.check_for_entails_conflict(input_manager, statement)
             else:
+                #if there are more than one statements then the other statement is needed to see if it blocks contains regions
+                if len(input_manager.get_statements()) > 1:
+                    other_statement = input_manager.get_other_statement(statement)
+                else:
+                    other_statement = None
+                
                 # Not entails statements are more complicated to mark - see code
-                output_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true)
+                output_manager = SyllogismEvaluator.check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true, other_statement)
         
         return output_manager
     
@@ -234,7 +240,7 @@ class SyllogismEvaluator:
         
         return input_manager
     
-    def check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true):
+    def check_for_not_entails_conflict(input_manager, statement, other_manager, evaluation_true, other_statement):
         # If the syllogsim is true then at least one contains region from the other manager must be contains in the input manager
         if evaluation_true:
             # Tuples of regions that are contains in the other manager
@@ -255,6 +261,13 @@ class SyllogismEvaluator:
         else:
             # If evaluation returned false, any region that could be contains should be contains
             for region_tuple, region in input_manager.regions.items():
+                
+                #if there is another entails statement in the same manager
+                if other_statement is not None and other_statement.entails:
+                    other_status = SyllogismEvaluator.determine_single_entails_status(other_statement, region)
+                    if other_status == Status.UNINHABITABLE:
+                        continue  # uninhabitable region cant possible be contains
+                
                 if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
                     if region.status != Status.CONTAINS:
                         region.set_status(Status.CONFLICT)
