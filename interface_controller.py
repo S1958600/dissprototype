@@ -8,7 +8,9 @@ class SyllogismGUI:
         self.root.title("Syllogism Evaluator")
         self.main_controller = main_controller
         self.row_counter = 0
+        self.set_names = ["A", "B", "C"]
         
+        self.create_set_name_input_frame()
         self.create_input_text_frame()
         self.create_interactive_venn_frame() 
         self.create_output_text_frame()
@@ -17,14 +19,22 @@ class SyllogismGUI:
         # If input not processed then the output boxes dont show
         self.process_syllogism_input()
 
-    def create_set_name_input(self):
+    def create_set_name_input_frame(self):
         rowIn = self.row_counter
+        self.set_name_frame = tk.Frame(self.root)
+        self.set_name_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
+        tk.Label(self.set_name_frame, text="Set Names:", anchor="center").grid(row=rowIn, column=0, padx=5, pady=5)
         
+        #make tkinter variables for the set names and create entry fields for them
+        self.set_name_vars = [tk.StringVar(value=name) for name in self.set_names]
+        for i, set_name_var in enumerate(self.set_name_vars):
+            tk.Entry(self.set_name_frame, textvariable=set_name_var, width=5).grid(row=rowIn, column=i+1, padx=5, pady=5)
         
+        self.update_button = tk.Button(self.set_name_frame, text="Update Set Labels", command=self.update_set_labels)
+        self.update_button.grid(row=rowIn, column=len(self.set_name_vars)+1, padx=5, pady=5)
         
         self.row_counter += 1
-
 
     def create_input_text_frame(self):
         rowIn = self.row_counter
@@ -32,24 +42,34 @@ class SyllogismGUI:
         self.input_frame.grid(row=rowIn, column=0, padx=10, pady=10)
         
         # case code 0 = major premise, 1 = minor premise, 2 = conclusion
-        self.create_premise_row("Major Premise:", rowIn, "A", "B", 0)
-        self.create_premise_row("Minor Premise:", rowIn+1, "B", "C", 1)
-        self.create_premise_row("Conclusion:", rowIn+2, "A", "C", 2)
+        self.create_premise_row("Major Premise:", rowIn, 0)
+        self.create_premise_row("Minor Premise:", rowIn+1, 1)
+        self.create_premise_row("Conclusion:", rowIn+2, 2)
         
         self.process_button = tk.Button(self.input_frame, text="Display output Venn Diagram", command=self.process_syllogism_input)
         self.process_button.grid(row=rowIn+3, column=0, columnspan=7, pady=10)
         
         self.row_counter += 4
 
-    def create_premise_row(self, label_text, row, antecedent_default, consequent_default, case_code):
+    def create_premise_row(self, label_text, row, case_code):
         tk.Label(self.input_frame, text=label_text, anchor="center").grid(row=row, column=0, padx=5, pady=5)
         
         antecedent_neg_var = tk.BooleanVar(value=False)
         tk.Checkbutton(self.input_frame, text="¬", variable=antecedent_neg_var).grid(row=row, column=1, padx=5, pady=5)
         
-        antecedent_entry = tk.Entry(self.input_frame, width=5)
-        antecedent_entry.grid(row=row, column=2, padx=5, pady=5)
-        antecedent_entry.insert(0, antecedent_default)
+        # set up the default syllogism that the system starts with
+        if case_code == 0:
+            antecedent_var = tk.StringVar(value=self.set_names[0])  #A
+            consequent_var = tk.StringVar(value=self.set_names[1])  #B
+        elif case_code == 1:
+            antecedent_var = tk.StringVar(value=self.set_names[1])  #B
+            consequent_var = tk.StringVar(value=self.set_names[2])  #C
+        elif case_code == 2:
+            antecedent_var = tk.StringVar(value=self.set_names[0])  #A
+            consequent_var = tk.StringVar(value=self.set_names[2])  #C
+        
+        antecedent_menu = tk.OptionMenu(self.input_frame, antecedent_var, *self.set_names)
+        antecedent_menu.grid(row=row, column=2, padx=5, pady=5)
         
         entailment_var = tk.StringVar(value="⊨")
         tk.Radiobutton(self.input_frame, text="⊨", variable=entailment_var, value="⊨").grid(row=row, column=3, padx=3, pady=5)
@@ -58,28 +78,64 @@ class SyllogismGUI:
         consequent_neg_var = tk.BooleanVar(value=False)
         tk.Checkbutton(self.input_frame, text="¬", variable=consequent_neg_var).grid(row=row, column=5, padx=5, pady=5)
         
-        consequent_entry = tk.Entry(self.input_frame, width=5)
-        consequent_entry.grid(row=row, column=6, padx=5, pady=5)
-        consequent_entry.insert(0, consequent_default)
+        consequent_menu = tk.OptionMenu(self.input_frame, consequent_var, *self.set_names)
+        consequent_menu.grid(row=row, column=6, padx=5, pady=5)
         
         if case_code == 0:
+            # major premise
             self.major_antecedent_neg = antecedent_neg_var
-            self.major_antecedent = antecedent_entry
+            self.major_antecedent = antecedent_var
             self.major_entailment = entailment_var
             self.major_consequent_neg = consequent_neg_var
-            self.major_consequent = consequent_entry
+            self.major_consequent = consequent_var
+            self.major_antecedent_menu = antecedent_menu
+            self.major_consequent_menu = consequent_menu
         elif case_code == 1:
+            # minor premise
             self.minor_antecedent_neg = antecedent_neg_var
-            self.minor_antecedent = antecedent_entry
+            self.minor_antecedent = antecedent_var
             self.minor_entailment = entailment_var
             self.minor_consequent_neg = consequent_neg_var
-            self.minor_consequent = consequent_entry
+            self.minor_consequent = consequent_var
+            self.minor_antecedent_menu = antecedent_menu
+            self.minor_consequent_menu = consequent_menu
         elif case_code == 2:
+            # conclusion
             self.conc_antecedent_neg = antecedent_neg_var
-            self.conc_antecedent = antecedent_entry
+            self.conc_antecedent = antecedent_var
             self.conc_entailment = entailment_var
             self.conc_consequent_neg = consequent_neg_var
-            self.conc_consequent = consequent_entry
+            self.conc_consequent = consequent_var
+            self.conc_antecedent_menu = antecedent_menu
+            self.conc_consequent_menu = consequent_menu
+
+    def update_set_labels(self):
+        self.set_names = [var.get() for var in self.set_name_vars]
+        
+        # Update dropdown menus
+        for menu, var in [
+            (self.major_antecedent_menu, self.major_antecedent),
+            (self.major_consequent_menu, self.major_consequent),
+            (self.minor_antecedent_menu, self.minor_antecedent),
+            (self.minor_consequent_menu, self.minor_consequent),
+            (self.conc_antecedent_menu, self.conc_antecedent),
+            (self.conc_consequent_menu, self.conc_consequent)
+        ]:
+            menu['menu'].delete(0, 'end')
+            for name in self.set_names:
+                menu['menu'].add_command(label=name, command=tk._setit(var, name))
+        
+        #interactive venn diagrams need to be regenerated to reflect new labels
+        self.interactive_premises_canvas.get_tk_widget().pack_forget()
+        self.interactive_conclusion_canvas.get_tk_widget().pack_forget()
+        
+        self.interactive_premises_canvas, self.interactive_premises_venn = gen_matplot_venn_interactive(
+            self.interactive_premises_frame, self.region_status, set_labels=self.set_names)
+        self.interactive_premises_canvas.get_tk_widget().pack(expand=True, fill="both")
+        
+        self.interactive_conclusion_canvas, self.interactive_conclusion_venn = gen_matplot_venn_interactive(
+            self.interactive_conclusion_frame, self.region_status, set_labels=self.set_names)
+        self.interactive_conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
 
     def create_output_text_frame(self):
         rowIn = self.row_counter
@@ -127,7 +183,7 @@ class SyllogismGUI:
         label = tk.Label(frame, text=title, anchor="center")
         label.pack()
         
-        canvas, venn = gen_matplot_venn_interactive(frame, self.region_status)
+        canvas, venn = gen_matplot_venn_interactive(frame, self.region_status, set_labels=self.set_names)
         canvas.get_tk_widget().pack(expand=True, fill="both")
         
         setattr(self, f"{title.lower().replace(' ', '_')}_frame", frame)
@@ -198,10 +254,10 @@ class SyllogismGUI:
         self.premises_label.config(text=f"Premises: {premise_text}")
         self.conclusion_label.config(text=f"Conclusion: {conclusion_text}")
         
-        self.premises_canvas = gen_matplot_venn_output(premises_manager, self.premises_frame)
+        self.premises_canvas = gen_matplot_venn_output(premises_manager, self.premises_frame, set_labels=self.set_names)
         self.premises_canvas.get_tk_widget().pack(expand=True, fill="both")
         
-        self.conclusion_canvas = gen_matplot_venn_output(conclusion_manager, self.conclusion_frame)
+        self.conclusion_canvas = gen_matplot_venn_output(conclusion_manager, self.conclusion_frame, set_labels=self.set_names)
         self.conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
             
     def process_venn_input(self):

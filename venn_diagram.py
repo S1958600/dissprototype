@@ -5,47 +5,39 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from region_manager import RegionManager
 from region_struct import Status
 
-def gen_matplot_venn_output(region_manager, master_frame):
+def gen_matplot_venn_output(region_manager, master_frame, set_labels=('A', 'B', 'C')):
     # Create a Venn diagram
     fig, ax = plt.subplots(figsize=(2, 2))
-    venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1, 1), set_labels=('A', 'B', 'C'))
+    venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1, 1), set_labels=set_labels)
     
-    # Set up defualt diagram
+    # Set up default diagram
     for subset in ('100', '010', '001', '110', '101', '011', '111'):
         venn.get_patch_by_id(subset).set_facecolor('white')
         venn.get_patch_by_id(subset).set_edgecolor('black')
         venn.get_label_by_id(subset).set_text('')
     
-    
     for region_tuple, region in region_manager.regions.items():    
-        #print(region_tuple)
         subset_label = ''.join(['1' if x else '0' for x in region_tuple])
-        #print(subset_label)
         
-        #if updating region that is outside of all sets then pass
         if not subset_label == '000':
             if region.status == Status.CONTAINS:
                 venn.get_label_by_id(subset_label).set_text('X')
             elif region.status == Status.UNINHABITABLE:
-                #venn.get_label_by_id(subset_label).set_text('X')
                 venn.get_patch_by_id(subset_label).set_facecolor('grey')
                 venn.get_patch_by_id(subset_label).set_alpha(0.5)
             elif region.status == Status.CONFLICT:
                 venn.get_patch_by_id(subset_label).set_facecolor('red')
                 venn.get_label_by_id(subset_label).set_text('!')
-        
-    
     
     canvas = FigureCanvasTkAgg(fig, master=master_frame)
     canvas.draw()
     plt.close(fig)
     return canvas
 
-
-def gen_matplot_venn_interactive(master_frame, region_status_var):
+def gen_matplot_venn_interactive(master_frame, region_status_var, set_labels=('A', 'B', 'C')):
     # Create a Venn diagram
     fig, ax = plt.subplots(figsize=(2, 2))
-    venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1), set_labels=('A', 'B', 'C'))
+    venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1), set_labels=set_labels)
     
     # Set up default diagram
     for subset in ('100', '010', '001', '110', '101', '011', '111'):
