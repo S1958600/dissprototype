@@ -90,3 +90,54 @@ def generate_region_manager_from_venn(venn):
         region_manager.set_habitability(region_tuple, status)
     
     return region_manager
+
+def generate_matplot_venn_interactive_from_region_manager(master_frame, region_manager, set_labels=('A', 'B', 'C')):
+    # Create a Venn diagram
+    fig, ax = plt.subplots(figsize=(2, 2))
+    venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1), set_labels=set_labels)
+    
+    # Set up default diagram
+    for subset in ('100', '010', '001', '110', '101', '011', '111'):
+        venn.get_patch_by_id(subset).set_facecolor('white')
+        venn.get_patch_by_id(subset).set_edgecolor('black')
+        venn.get_label_by_id(subset).set_text('')
+    
+    for region_tuple, region in region_manager.regions.items():    
+        subset_label = ''.join(['1' if x else '0' for x in region_tuple])
+        
+        if not subset_label == '000':
+            if region.status == Status.CONTAINS:
+                venn.get_label_by_id(subset_label).set_text('X')
+            elif region.status == Status.UNINHABITABLE:
+                venn.get_patch_by_id(subset_label).set_facecolor('grey')
+                venn.get_patch_by_id(subset_label).set_alpha(0.5)
+            elif region.status == Status.CONFLICT:
+                venn.get_patch_by_id(subset_label).set_facecolor('red')
+                venn.get_label_by_id(subset_label).set_text('!')
+    
+    # Add click event to patches
+    def on_click(event):
+        for subset in ('100', '010', '001', '110', '101', '011', '111'):
+            patch = venn.get_patch_by_id(subset)
+            if patch and patch.contains_point((event.x, event.y)):
+                if region_manager.regions[tuple(int(x) for x in subset)].status == Status.HABITABLE:
+                    new_colour = 'grey'
+                    new_text = ''
+                elif region_manager.regions[tuple(int(x) for x in subset)].status == Status.UNINHABITABLE:
+                    new_colour = 'white'
+                    new_text = 'X'
+                elif region_manager.regions[tuple(int(x) for x in subset)].status == Status.CONTAINS:
+                    new_colour = 'white'
+                    new_text = ''
+                
+                patch.set_facecolor(new_colour)
+                venn.get_label_by_id(subset).set_text(new_text)
+                fig.canvas.draw()
+                break
+    
+    fig.canvas.mpl_connect('button_press_event', on_click)
+    
+    canvas = FigureCanvasTkAgg(fig, master=master_frame)
+    canvas.draw()
+    plt.close(fig)
+    return canvas, venn

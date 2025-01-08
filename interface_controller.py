@@ -1,18 +1,23 @@
 import tkinter as tk
 from tkinter import messagebox
-from venn_diagram import gen_matplot_venn_output, gen_matplot_venn_interactive, generate_region_manager_from_venn
+from tkinter import filedialog
+
+from image_controller import ImageController
+from venn_diagram import gen_matplot_venn_output, gen_matplot_venn_interactive, generate_region_manager_from_venn, generate_matplot_venn_interactive_from_region_manager
 
 class SyllogismGUI:
     def __init__(self, root, main_controller):
         self.root = root
         self.root.title("Syllogism Evaluator")
         self.main_controller = main_controller
+        self.image_controller = ImageController() 
         self.row_counter = 0
         self.set_names = ["A", "B", "C"]
         
         self.create_set_name_input_frame()
         self.create_input_text_frame()
         self.create_interactive_venn_frame() 
+        self.create_upload_file_frame()
         self.create_output_text_frame()
         self.create_output_venn_frame()
         
@@ -213,6 +218,49 @@ class SyllogismGUI:
         setattr(self, f"{title.lower()}_frame", frame)
         setattr(self, f"{title.lower()}_label", label)
         setattr(self, f"{title.lower()}_canvas", None)
+
+    def create_upload_file_frame(self):
+        rowIn = self.row_counter
+        
+        self.upload_frame = tk.Frame(self.root)
+        self.upload_frame.grid(row=rowIn, column=0, padx=10, pady=10)
+        
+        self.upload_premise_button = tk.Button(self.upload_frame, text="Upload Premise Image", command=self.upload_premise_image)
+        self.upload_premise_button.grid(row=rowIn, column=1, padx=5, pady=5)
+        
+        self.upload_conclusion_button = tk.Button(self.upload_frame, text="Upload Conclusion Image", command=self.upload_conclusion_image)
+        self.upload_conclusion_button.grid(row=rowIn, column=2, padx=5, pady=5)
+        
+        #add a process button to process the file
+        self.process_file_button = tk.Button(self.upload_frame, text="Process Images", command=self.process_images)
+        self.process_file_button.grid(row=rowIn, column=3, padx=5, pady=5)
+        
+        self.row_counter += 1
+    
+    def upload_premise_image(self):
+        self.image_controller.upload_premise_image()
+
+    def upload_conclusion_image(self):
+        self.image_controller.upload_conclusion_image()
+
+    def process_images(self):
+        try:
+            premise_venn_manager, conclusion_venn_manager = self.image_controller.process_images()
+            self.update_interactive_venn_diagrams(premise_venn_manager, conclusion_venn_manager)
+        except Exception as e:
+            messagebox.showerror("Processing Error", str(e))
+
+    def update_interactive_venn_diagrams(self, premise_venn_manager, conclusion_venn_manager):
+        self.interactive_premises_canvas.get_tk_widget().pack_forget()
+        self.interactive_conclusion_canvas.get_tk_widget().pack_forget()
+        
+        self.interactive_premises_canvas, self.interactive_premises_venn = generate_matplot_venn_interactive_from_region_manager(
+            self.interactive_premises_frame, premise_venn_manager, set_labels=self.set_names)
+        self.interactive_premises_canvas.get_tk_widget().pack(expand=True, fill="both")
+        
+        self.interactive_conclusion_canvas, self.interactive_conclusion_venn = generate_matplot_venn_interactive_from_region_manager(
+            self.interactive_conclusion_frame, conclusion_venn_manager, set_labels=self.set_names)
+        self.interactive_conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
 
     def get_raw_syllogism_input(self):
         #construct a plain text syllogism from the input fields
