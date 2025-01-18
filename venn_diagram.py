@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib_venn import venn3
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from region_manager import RegionManager
-from region_struct import Status
+from region_manager import RegionManager, Status
 
 def gen_matplot_venn_output(region_manager, master_frame, set_labels=('A', 'B', 'C')):
     # Create a Venn diagram
