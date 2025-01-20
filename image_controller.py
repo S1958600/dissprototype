@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from region_manager import RegionManager, Status
 import math
+import itertools
 
 class ImageController:
     def __init__(self):
@@ -60,26 +61,40 @@ class ImageController:
         denoised = self.binary_denoise(resized_image)
         cv2.imshow("Denoised image", denoised)
         
-        stripped_image, shapes_only_image = self.strip_shapes(denoised)
+        #stripped_image, shapes_only_image = self.strip_shapes(denoised)
         
-        selected_circles = self.detect_circles(denoised)
+        drawing_img = resized_image.copy()
+        
+        selected_circles, valid_triplets = self.detect_circles(denoised, drawing_img)
 
+        print("found this many triplets: ", len(valid_triplets))
+
+        # Draw 20 largest radii valid triplets
+        triplet_image = resized_image.copy()
+        valid_triplets.sort(key=lambda x: sum([circle[2] for circle in x]), reverse=True)
+        triplet_count = min(20, len(valid_triplets))
+        
+        for triplet in valid_triplets[:triplet_count]:
+            for (x, y, r) in triplet:
+                cv2.circle(triplet_image, (x, y), r, (0, 255, 0), 2)
+                cv2.rectangle(triplet_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+            cv2.imshow("Triplets", triplet_image)
             
         for (x, y, r) in selected_circles:
             # Draw the circle in the output image, then draw a rectangle corresponding to the center of the circle
             cv2.circle(resized_image, (x, y), r, (0, 255, 0), 2)
             cv2.rectangle(resized_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-
-            cv2.imshow("Detected Circles", resized_image)
+        cv2.imshow("Selected Circles", resized_image)
         
         return RegionManager([])
     
-    def detect_circles(self, image):
+
+    def detect_circles(self, image, drawing_img):
         # Use Hough Circle Transform to find circles
-        circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=14, param2=25, minRadius=10, maxRadius=600)
+        circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=800, param2=30, minRadius=10, maxRadius=600)
         
         if circles is None:
-            #throw exception
+            print("No circles detected - returning")
             return
         
         circles = np.round(circles[0, :]).astype("int")
@@ -90,32 +105,85 @@ class ImageController:
             # check the radius does not exceed the image boundaries
             if x - r < 0 or x + r > width or y - r < 0 or y + r > height:
                 continue
+            # check the radius is smaller than 10% of the image dimensions
+            if r / max(height, width) < 0.1:
+                continue
             filtered_circles.append((x, y, r))
-        
-        # Sort circles by radius in descending order
-        filtered_circles = sorted(filtered_circles, key=lambda c: c[2], reverse=True)
-        
-        selected_circles = []
-        min_distance_factor = 0.15  # Set the minimum distance for x*2r distance between circles
-        # smaller factor means circles can be closer together
-        
-        for circle in filtered_circles:
-            if len(selected_circles) >= 3:
-                # check if the radius is within set percentage of the selected circles
-                if all(abs(circle[2] - selected[2]) / selected[2] <= 0.05 for selected in selected_circles):
-                    break
-                else:
-                    selected_circles.pop(0)
             
-            # if the distance between the centers is less than the sum of the radii
-            # and greater than the minimum distance factor times the sum of the radii
-            if all(np.linalg.norm(np.array(circle[:2]) - np.array(selected[:2])) <= (circle[2] + selected[2]) and
-                np.linalg.norm(np.array(circle[:2]) - np.array(selected[:2])) >= min_distance_factor * (circle[2] + selected[2])
-                for selected in selected_circles):
-                
-                selected_circles.append(circle)
+        # remove bottom 20% of circles
+        filtered_circles.sort(key=lambda x: x[1], reverse=True)
+        filtered_circles = filtered_circles[:int(0.8 * len(filtered_circles))]
         
-        return selected_circles
+        """
+        # Print 20 largest circles
+        filtered_circles.sort(key=lambda x: x[2], reverse=True)
+        circle_count = min(20, len(filtered_circles))
+        for i, (x, y, r) in enumerate(filtered_circles[:circle_count], start=1):
+            print(f"Circle {i}: center=({x}, {y}), radius={r}")
+            cv2.circle(drawing_img, (x, y), r, (0, 255, 0), 2)
+            cv2.rectangle(drawing_img, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+            cv2.putText(drawing_img, str(i), (x - 5, y + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        cv2.imshow("largest circles", drawing_img)
+        """
+
+        min_distance_factor = 0.9  # Set the mdf for r + mdf*r distance between circles
+        # smaller factor means circles can be closer together
+        radius_tolerance = 0.1  # Set the percentage tolerance for the radius difference between circles
+        valid_triplets = []
+
+        # for each circle in the list, find all valid 3 circle combinations
+        while filtered_circles:
+            circle = filtered_circles.pop(0)
+            valid_triplets.extend(self.find_valid_triplets(circle, filtered_circles, min_distance_factor, radius_tolerance))
+            
+        # Select the valid triplet with the largest radii
+        selected_circles = []
+        max_radius_sum = 0
+        
+        for triplet in valid_triplets:
+            radius_sum = sum([circle[2] for circle in triplet])
+            if radius_sum > max_radius_sum:
+                max_radius_sum = radius_sum
+                selected_circles = triplet
+        
+        return selected_circles, valid_triplets
+    
+    def find_valid_triplets(self, circle, circles, min_distance_factor, radius_tolerance):   
+        #minimum distance between the circles is some fraction of r
+        min_distance = min_distance_factor * circle[2]
+        
+        #maximum distance between the circles is 2r -> not intersecting if radii are equal (they should be)
+        max_distance = 2 * circle[2]
+        
+        min_radius = circle[2] - radius_tolerance * circle[2]
+        max_radius = circle[2] + radius_tolerance * circle[2]
+        
+        valid_triplets = []
+        #for each pair of circles from the list, check if all 3 circles are valid
+        for pair in itertools.combinations(circles, 2):
+            circle1, circle2 = pair
+            triplet_valid = True
+            
+            #check if the radii of the 2 circles are within the tolerance
+            if not (min_radius <= circle1[2] <= max_radius and min_radius <= circle2[2] <= max_radius):
+                triplet_valid = False
+                continue
+            
+            #check if the distance between each of the 3 circles is within the min and max distance
+            distances = []
+            distances.append(math.sqrt((circle1[0] - circle2[0]) ** 2 + (circle1[1] - circle2[1]) ** 2))
+            distances.append(math.sqrt((circle1[0] - circle[0]) ** 2 + (circle1[1] - circle[1]) ** 2))
+            distances.append(math.sqrt((circle2[0] - circle[0]) ** 2 + (circle2[1] - circle[1]) ** 2))
+                
+            for distance in distances:
+                if not (min_distance <= distance <= max_distance):
+                    triplet_valid = False
+                    break
+            
+            if triplet_valid:
+                valid_triplets.append([circle1, circle2, circle])
+                
+        return valid_triplets
 
     def detect_crosses(self, image):
         crosses_image = np.zeros_like(image)
