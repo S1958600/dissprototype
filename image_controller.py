@@ -65,20 +65,7 @@ class ImageController:
         
         drawing_img = resized_image.copy()
         
-        selected_circles, valid_triplets = self.detect_circles(denoised, drawing_img)
-
-        print("found this many triplets: ", len(valid_triplets))
-
-        # Draw 20 largest radii valid triplets
-        triplet_image = resized_image.copy()
-        valid_triplets.sort(key=lambda x: sum([circle[2] for circle in x]), reverse=True)
-        triplet_count = min(20, len(valid_triplets))
-        
-        for triplet in valid_triplets[:triplet_count]:
-            for (x, y, r) in triplet:
-                cv2.circle(triplet_image, (x, y), r, (0, 255, 0), 2)
-                cv2.rectangle(triplet_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-            cv2.imshow("Triplets", triplet_image)
+        selected_circles = self.detect_circles(denoised, drawing_img)
             
         for (x, y, r) in selected_circles:
             # Draw the circle in the output image, then draw a rectangle corresponding to the center of the circle
@@ -126,35 +113,57 @@ class ImageController:
         cv2.imshow("largest circles", drawing_img)
         """
 
-        min_distance_factor = 0.9  # Set the mdf for r + mdf*r distance between circles
-        # smaller factor means circles can be closer together
-        radius_tolerance = 0.1  # Set the percentage tolerance for the radius difference between circles
         valid_triplets = []
-
         # for each circle in the list, find all valid 3 circle combinations
         while filtered_circles:
             circle = filtered_circles.pop(0)
-            valid_triplets.extend(self.find_valid_triplets(circle, filtered_circles, min_distance_factor, radius_tolerance))
+            valid_triplets.extend(self.find_valid_triplets(circle, filtered_circles))
             
-        # Select the valid triplet with the largest radii
+        # Select the valid triplet with the greatest confidence
         selected_circles = []
-        max_radius_sum = 0
-        
+        max_confidence_score = 0
+                
         for triplet in valid_triplets:
-            radius_sum = sum([circle[2] for circle in triplet])
-            if radius_sum > max_radius_sum:
-                max_radius_sum = radius_sum
+            confidence_score = self.calculate_circle_confidence(triplet)
+            if confidence_score > max_confidence_score:
+                max_confidence_score = confidence_score
                 selected_circles = triplet
+                
         
-        return selected_circles, valid_triplets
+        # Draw 20 largest radii valid triplets
+        triplet_image = drawing_img.copy()
+        valid_triplets.sort(key=lambda x: sum([circle[2] for circle in x]), reverse=True)
+        triplet_count = min(20, len(valid_triplets))
+        for triplet in valid_triplets[:triplet_count]:
+            for (x, y, r) in triplet:
+                cv2.circle(triplet_image, (x, y), r, (0, 255, 0), 2)
+                cv2.rectangle(triplet_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+            cv2.imshow("Triplets - largest", triplet_image)
+                
+                
+        #print 20 most confident triplets
+        valid_triplets.sort(key=lambda x: self.calculate_circle_confidence(x), reverse=True)
+        triplet_count = min(20, len(valid_triplets))
+        for i, triplet in enumerate(valid_triplets[:triplet_count], start=1):
+            #print(f"Triplet {i}: confidence={self.calculate_circle_confidence(triplet)}")
+            for (x, y, r) in triplet:
+                cv2.circle(drawing_img, (x, y), r, (0, 255, 0), 2)
+                cv2.rectangle(drawing_img, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+        cv2.imshow("Triplets - most confident", drawing_img)
+        
+        return selected_circles
     
-    def find_valid_triplets(self, circle, circles, min_distance_factor, radius_tolerance):   
+    def find_valid_triplets(self, circle, circles):
+        
+        
         #minimum distance between the circles is some fraction of r
+        min_distance_factor = 0.8
         min_distance = min_distance_factor * circle[2]
         
         #maximum distance between the circles is 2r -> not intersecting if radii are equal (they should be)
         max_distance = 2 * circle[2]
         
+        radius_tolerance = 0.1  # Set the percentage tolerance for the radius difference between circles
         min_radius = circle[2] - radius_tolerance * circle[2]
         max_radius = circle[2] + radius_tolerance * circle[2]
         
@@ -184,6 +193,42 @@ class ImageController:
                 valid_triplets.append([circle1, circle2, circle])
                 
         return valid_triplets
+    
+    def calculate_circle_confidence(self, triplet):
+        w1=0.2 # weight for radius similarity
+        w2=0.4 # weight for distance consistency
+        w3=0.4 # weight for size bonus
+        
+        circle1, circle2, circle3 = triplet
+        radii = [circle1[2], circle2[2], circle3[2]]
+        distances = [
+            math.sqrt((circle1[0] - circle2[0]) ** 2 + (circle1[1] - circle2[1]) ** 2),
+            math.sqrt((circle1[0] - circle3[0]) ** 2 + (circle1[1] - circle3[1]) ** 2),
+            math.sqrt((circle2[0] - circle3[0]) ** 2 + (circle2[1] - circle3[1]) ** 2)
+        ]
+        
+        # Radius similarity
+        mean_radius = np.mean(radii)
+        std_radius = np.std(radii)   # standard deviation
+        radius_similarity = 1 - (std_radius / mean_radius)  # larger similarity = more similar radii
+        
+        # Distance consistency
+        mean_distance = np.mean(distances)
+        std_distance = np.std(distances)
+        distance_consistency = 1 - (std_distance / mean_distance)
+        
+        # Size bonus
+        max_radius = 600 # Maximum radius of a circle for normalization
+        size_bonus = mean_radius / max_radius
+        
+        # Weighted confidence
+        confidence = (
+            w1 * radius_similarity +
+            w2 * distance_consistency +
+            w3 * size_bonus
+        )
+        
+        return max(0, min(confidence, 1))  #clamps to [0, 1]
 
     def detect_crosses(self, image):
         crosses_image = np.zeros_like(image)
