@@ -248,7 +248,7 @@ class SyllogismGUI:
             premise_venn_manager, conclusion_venn_manager = self.image_controller.process_images()
             self.update_interactive_venn_diagrams(premise_venn_manager, conclusion_venn_manager)
         except Exception as e:
-            messagebox.showerror("Processing Error", str(e))
+            messagebox.showerror("Image Processing Error", str(e))
 
     def update_interactive_venn_diagrams(self, premise_venn_manager, conclusion_venn_manager):
         self.interactive_premises_canvas.get_tk_widget().pack_forget()

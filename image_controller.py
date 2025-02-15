@@ -59,21 +59,29 @@ class ImageController:
         dimensions = self.determine_image_proportion(image)
         resized_image = cv2.resize(image, dimensions, interpolation=cv2.INTER_AREA)
         denoised = self.binary_denoise(resized_image)
-        cv2.imshow("Denoised image", denoised)
         
-        #stripped_image, shapes_only_image = self.strip_shapes(denoised)
-        
-        drawing_img = resized_image.copy()
+        #cv2.imshow("Denoised image", denoised)
+                
+        drawing_img = resized_image.copy() # dev purposes only
         
         selected_circles = self.detect_circles(denoised, drawing_img)
-            
+        
+        # display the selected circles    
         for (x, y, r) in selected_circles:
             # Draw the circle in the output image, then draw a rectangle corresponding to the center of the circle
             cv2.circle(resized_image, (x, y), r, (0, 255, 0), 2)
             cv2.rectangle(resized_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
         cv2.imshow("Selected Circles", resized_image)
         
-        return RegionManager([])
+        # identify each region and what set(s) it belongs to
+        region_masks = self.generate_region_masks(denoised, selected_circles)
+        
+        #check all region masks and interpret the regions
+        region_manager = self.interpret_all_regions(denoised, region_masks)
+                
+        region_manager.print_regions()
+        
+        return region_manager
     
 
     def detect_circles(self, image, drawing_img):
@@ -130,6 +138,7 @@ class ImageController:
                 selected_circles = triplet
                 
         
+        """
         # Draw 20 largest radii valid triplets
         triplet_image = drawing_img.copy()
         valid_triplets.sort(key=lambda x: sum([circle[2] for circle in x]), reverse=True)
@@ -139,8 +148,9 @@ class ImageController:
                 cv2.circle(triplet_image, (x, y), r, (0, 255, 0), 2)
                 cv2.rectangle(triplet_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
             cv2.imshow("Triplets - largest", triplet_image)
-                
-                
+        #"""        
+        
+        """        
         #print 20 most confident triplets
         valid_triplets.sort(key=lambda x: self.calculate_circle_confidence(x), reverse=True)
         triplet_count = min(20, len(valid_triplets))
@@ -150,12 +160,11 @@ class ImageController:
                 cv2.circle(drawing_img, (x, y), r, (0, 255, 0), 2)
                 cv2.rectangle(drawing_img, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
         cv2.imshow("Triplets - most confident", drawing_img)
+        #"""
         
         return selected_circles
     
     def find_valid_triplets(self, circle, circles):
-        
-        
         #minimum distance between the circles is some fraction of r
         min_distance_factor = 0.8
         min_distance = min_distance_factor * circle[2]
@@ -195,8 +204,8 @@ class ImageController:
         return valid_triplets
     
     def calculate_circle_confidence(self, triplet):
-        w1=0.2 # weight for radius similarity
-        w2=0.4 # weight for distance consistency
+        w1=0.3 # weight for radius similarity
+        w2=0.2 # weight for distance consistency
         w3=0.4 # weight for size bonus
         
         circle1, circle2, circle3 = triplet
@@ -229,81 +238,152 @@ class ImageController:
         )
         
         return max(0, min(confidence, 1))  #clamps to [0, 1]
-
-    def detect_crosses(self, image):
-        crosses_image = np.zeros_like(image)
-        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                
-        # Search for crosses
-        cross_positions = []
-        bounding_boxes = []
-        for contour in contours:
-            if self.is_cross(image, contour):
-                center = self.get_contour_center(contour)
-                if center is not None:
-                    cross_positions.append(center)
-                    bounding_boxes.append(cv2.boundingRect(contour))
-                    
-                    # Draw the bounding box and center of the cross
-                    x, y, w, h = cv2.boundingRect(contour)
-                    cv2.rectangle(crosses_image, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    cv2.circle(crosses_image, center, 5, (0, 0, 255), -1)
+    
+    def generate_region_masks(self, image, circles):
+        # A is top left, B is top right, C is center - selected by x coord order
+        sorted_circles = sorted(circles, key=lambda c: c[0])
+        sets = {'A': sorted_circles[0], 'B': sorted_circles[2], 'C': sorted_circles[1]}
         
-        cv2.imshow("Crosses", crosses_image)
+        # Create a mask for each circle
+        height, width = image.shape[:2]
+        mask_A = np.zeros((height, width), dtype=np.uint8)
+        mask_B = np.zeros((height, width), dtype=np.uint8)
+        mask_C = np.zeros((height, width), dtype=np.uint8)
         
-        return bounding_boxes, cross_positions
-
-    def is_cross(self, image, contour):
-        # Approximate the contour to reduce the number of points
-        epsilon = 0.04 * cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, epsilon, True)
+        cv2.circle(mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2], 255, thickness=-1)
+        cv2.circle(mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2], 255, thickness=-1)
+        cv2.circle(mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2], 255, thickness=-1)
         
-        #tolerance for the number of points
-        if not (3 <= len(approx) <= 16):
+        #masks identified by region tuple - note NULL region is not considered
+        #use bitwise and for efficiency
+        region_masks = {
+            (True, False, False): cv2.bitwise_and(mask_A, cv2.bitwise_not(cv2.bitwise_or(mask_B, mask_C))),  # A
+            (False, True, False): cv2.bitwise_and(mask_B, cv2.bitwise_not(cv2.bitwise_or(mask_A, mask_C))),  # B
+            (False, False, True): cv2.bitwise_and(mask_C, cv2.bitwise_not(cv2.bitwise_or(mask_A, mask_B))),  # C
+            (True, True, False): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_B), cv2.bitwise_not(mask_C)),  # AB
+            (True, False, True): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_C), cv2.bitwise_not(mask_B)),  # AC
+            (False, True, True): cv2.bitwise_and(cv2.bitwise_and(mask_B, mask_C), cv2.bitwise_not(mask_A)),  # BC
+            (True, True, True): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_B), mask_C)  # ABC
+        }
+        
+        """
+        #dev image for testing, use colour to identify regions in BGR format
+        all_regions = np.zeros((height, width, 3), dtype=np.uint8)
+        all_regions[region_masks[(True, False, False)] == 255] = (0, 0, 255)  # A is red
+        all_regions[region_masks[(False, True, False)] == 255] = (0, 255, 0)  # B is green
+        all_regions[region_masks[(False, False, True)] == 255] = (255, 0, 0)  # C is blue
+        all_regions[region_masks[(True, True, False)] == 255] = (0, 255, 255)  # other colours are combinations
+        all_regions[region_masks[(True, False, True)] == 255] = (255, 0, 255)   
+        all_regions[region_masks[(False, True, True)] == 255] = (255, 255, 0)   
+        all_regions[region_masks[(True, True, True)] == 255] = (255, 255, 255)  
+        cv2.imshow("All Regions", all_regions)
+        #"""
+        
+        return region_masks
+    
+    
+    def get_pixel_region_tuple(self, x, y, circleA, circleB, circleC):
+        # check if the pixel is in each circle
+        inA = self.is_pixel_in_circle(x, y, circleA)
+        inB = self.is_pixel_in_circle(x, y, circleB)
+        inC = self.is_pixel_in_circle(x, y, circleC)
+        
+        return (inA, inB, inC)
+    
+    def is_pixel_in_circle(self, x, y, circle):
+        # uses pythagarean theorem to check if the pixel is within the circle - np is faster than math
+        dx = np.array(x) - circle[0]
+        dy = np.array(y) - circle[1]
+        r = circle[2]
+        return np.square(dx) + np.square(dy) < np.square(r)  # True if pixel is less than r away from the center
+    
+    def interpret_all_regions(self, image, region_masks):
+        # for each region mask, interpret the region
+        region_manager = RegionManager([])
+        
+        for region_tuple, region_mask in region_masks.items():
+            status = self.interpret_region(image, region_mask)
+            region_manager.set_habitability(region_tuple, status)
+             
+        return region_manager
+    
+    def interpret_region(self, image, region_mask):
+        # check if the region is shaded
+        is_shaded = self.check_shaded(image, region_mask)
+        if is_shaded:
+            return Status.UNINHABITABLE
+        
+        # check if the region has a cross
+        is_checked = self.check_cross(image, region_mask)
+        if is_checked:
+            return Status.CONTAINS
+        
+        return Status.HABITABLE
+    
+    def check_shaded(self, binary_image, region_mask, threshold=0.2):
+        #get the region of the image that is within the region mask
+        region = cv2.bitwise_and(binary_image, binary_image, mask=region_mask)
+        
+        #find proportion of shaded pixels
+        total_region_pixels = cv2.countNonZero(region_mask)
+        shaded_region_pixels = cv2.countNonZero(region)
+        shaded_ratio = shaded_region_pixels / total_region_pixels
+        
+        is_shaded = shaded_ratio > threshold
+        #print(f"Region has {shaded_ratio * 100:.2f}% shaded spixels")
+        return is_shaded
+    
+    
+    def check_cross(self, binary_image, region_mask):
+        # Extract the region using the mask
+        region = cv2.bitwise_and(binary_image, binary_image, mask=region_mask)
+        edges = cv2.Canny(region, 50, 150)
+        
+        # Find contours in the region
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        dev_image = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+        
+        if len(contours) == 0:
+            print("No contours detected")
             return False
         
-        return True
+        cross_detected = False
+        area_threshold_lower = 30
+        area_threshold_upper = 300
+        
+        # Check each contour to see if it resembles a cross
+        for contour in contours:
+            if cv2.contourArea(contour) < area_threshold_lower:
+                continue
+            
+            #x, y, w, h = cv2.boundingRect(contour)
+            #bounding_box_area = w * h
+            #if bounding_box_area > area_threshold_upper:
+            #    continue
+            
+            if self.is_cross(contour):
+                # Draw the contour in green if it is detected as a cross
+                cv2.drawContours(dev_image, [contour], -1, (0, 255, 0), 2)
+                cross_detected = True
+            else:
+                # Draw the contour in red if it is not detected as a cross
+                cv2.drawContours(dev_image, [contour], -1, (0, 0, 255), 2)
+        
+        if cross_detected:
+            cv2.imshow("Cross Detection", dev_image)
+        
+        return cross_detected
 
+    def is_cross(self, contour):
+        # Approximate the contour to reduce the number of points
+        epsilon = 0.02 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
         
-    def get_contour_center(self, contour):
-        moments = cv2.moments(contour)
-        if moments["m00"] == 0:
-            return None
-        center_x = int(moments["m10"] / moments["m00"])
-        center_y = int(moments["m01"] / moments["m00"])
+        # Check if the contour has a specific number of points (approximate for a cross shape)
+        if len(approx) >= 8 and len(approx) <= 14:
+            # Additional checks can be added here to verify the shape of the contour
+            # For example, checking the aspect ratio, area, etc.
+            return True
         
-        return (center_x, center_y)
-
-
-    def strip_shapes(self, image):
-        # Create a copy of the original image to work on
-        stripped_image = image.copy()
-        
-        # Create a blank image to store the shapes
-        shapes_only_image = np.zeros_like(image)
-        
-        # Detect crosses
-        bounding_boxes, cross_positions = self.detect_crosses(image)
-        
-        # Create a mask for the detected shapes
-        mask = np.zeros(image.shape[:2], dtype=np.uint8)
-        for (x, y, w, h) in bounding_boxes:
-            cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
-        
-        # Create the shapes only image
-        shapes_only_image = cv2.bitwise_and(image, image, mask=mask)
-        
-        # Invert the mask to remove the shapes from the original image
-        inverted_mask = cv2.bitwise_not(mask)
-        stripped_image = cv2.bitwise_and(image, image, mask=inverted_mask)
-        
-        return stripped_image, shapes_only_image
-
-    def dud_return(self):
-        premise_manager = RegionManager([])
-        premise_manager.set_habitability((1, 1, 1), Status.CONTAINS)
-        
-        conclusion_manager = RegionManager([])
-        conclusion_manager.set_habitability((1, 1, 1), Status.UNINHABITABLE)
-        
-        return premise_manager, conclusion_manager
+        return False
