@@ -285,7 +285,7 @@ class SyllogismGUI:
         
         self.output_text.delete(1.0, tk.END)
         try:
-            evaluation = self.main_controller.process_syllogism_input(raw_input)
+            evaluation = self.main_controller.process_syllogism_input(raw_input, order=self.set_names)
             self.output_text.insert(tk.END, f"Syllogism is: {evaluation['outputCode']}\n")
             premise_text = f"{major_premise}, {minor_premise}"
             self.display_venn_diagrams(evaluation['premises'], evaluation['conclusion'], premise_text, conclusion)

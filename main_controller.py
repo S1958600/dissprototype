@@ -10,8 +10,8 @@ class MainController:
     def run(self):
         self.root.mainloop()
     
-    def process_syllogism_input(self, raw_input):
-        return SyllogismController.process_syllogism_input(raw_input)
+    def process_syllogism_input(self, raw_input, order=None):
+        return SyllogismController.process_syllogism_input(raw_input, order)
     
     def process_venn_input(self, raw_syllogism, input_premises_manager, input_conclusion_manager):
         #returns a list of regions that are different between the two managers

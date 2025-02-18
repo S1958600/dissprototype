@@ -8,9 +8,16 @@ class SyllogismProcessor:
     set_names = ['A', 'B', 'C']
     
     @staticmethod
-    def process_input_syllogism(syllogism):
+    def process_input_syllogism(syllogism, order=None):
         # Reset unique sets for each new syllogism
         SyllogismProcessor.unique_sets = {}
+        
+        #if order is provided then map set names accordingly
+        if order:
+            if len(order) != 3:
+                raise ValueError("Invalid order: Must contain exactly three set names.")
+            for i, set_name in enumerate(order):
+                SyllogismProcessor.unique_sets[set_name] = SyllogismProcessor.set_names[i]
         
         # Split the syllogism into individual statements
         statements = syllogism.split(',')

@@ -3,11 +3,11 @@ from syllogism_evaluator import SyllogismEvaluator
 
 class SyllogismController:
     @staticmethod
-    def process_syllogism_input(raw_input):
+    def process_syllogism_input(raw_input, order=None):
         #print("Processing input:", raw_input)
         
         # Parse input and create syllogism
-        syllogism = SyllogismProcessor.process_input_syllogism(raw_input)
+        syllogism = SyllogismProcessor.process_input_syllogism(raw_input, order)
         #print("Created syllogism:\n", syllogism)
         
         # Generate region managers for each statement
