@@ -271,11 +271,11 @@ class SyllogismGUI:
         self.interactive_conclusion_canvas.get_tk_widget().pack_forget()
         
         self.interactive_premises_canvas, self.interactive_premises_venn = generate_matplot_venn_interactive_from_region_manager(
-            self.interactive_premises_frame, premise_venn_manager, set_labels=self.set_names)
+            self.interactive_premises_frame, premise_venn_manager, set_labels=self.set_names, region_status_var=self.region_status)
         self.interactive_premises_canvas.get_tk_widget().pack(expand=True, fill="both")
         
         self.interactive_conclusion_canvas, self.interactive_conclusion_venn = generate_matplot_venn_interactive_from_region_manager(
-            self.interactive_conclusion_frame, conclusion_venn_manager, set_labels=self.set_names)
+            self.interactive_conclusion_frame, conclusion_venn_manager, set_labels=self.set_names, region_status_var=self.region_status)
         self.interactive_conclusion_canvas.get_tk_widget().pack(expand=True, fill="both")
 
     def get_raw_syllogism_input(self):

@@ -90,7 +90,7 @@ def generate_region_manager_from_venn(venn):
     
     return region_manager
 
-def generate_matplot_venn_interactive_from_region_manager(master_frame, region_manager, set_labels=('A', 'B', 'C')):
+def generate_matplot_venn_interactive_from_region_manager(master_frame, region_manager, set_labels=('A', 'B', 'C'), region_status_var=None):
     # Create a Venn diagram
     fig, ax = plt.subplots(figsize=(2, 2))
     venn = venn3(subsets=(1, 1, 1, 1, 1, 1, 1), set_labels=set_labels)
@@ -119,18 +119,25 @@ def generate_matplot_venn_interactive_from_region_manager(master_frame, region_m
         for subset in ('100', '010', '001', '110', '101', '011', '111'):
             patch = venn.get_patch_by_id(subset)
             if patch and patch.contains_point((event.x, event.y)):
-                if region_manager.regions[tuple(int(x) for x in subset)].status == Status.HABITABLE:
+                region_tuple = tuple(int(x) for x in subset)
+                region = region_manager.regions[region_tuple]
+                
+                if region_status_var.get() == "habitable":
+                    new_colour = 'white'
+                    new_text = ''
+                    new_status = Status.HABITABLE
+                elif region_status_var.get() == "uninhabitable":
                     new_colour = 'grey'
                     new_text = ''
-                elif region_manager.regions[tuple(int(x) for x in subset)].status == Status.UNINHABITABLE:
+                    new_status = Status.UNINHABITABLE
+                elif region_status_var.get() == "contains":
                     new_colour = 'white'
                     new_text = 'X'
-                elif region_manager.regions[tuple(int(x) for x in subset)].status == Status.CONTAINS:
-                    new_colour = 'white'
-                    new_text = ''
+                    new_status = Status.CONTAINS
                 
                 patch.set_facecolor(new_colour)
                 venn.get_label_by_id(subset).set_text(new_text)
+                region_manager.set_habitability(region_tuple, new_status)
                 fig.canvas.draw()
                 break
     
