@@ -60,15 +60,12 @@ class SyllogismEvaluator:
     @staticmethod
     def determine_single_entails_status(statement, region):
         # if region is within antecedent 
-        if region.is_in_set(statement.antecedent):
-            if region.is_in_set(statement.consequent):
-                # and in consequent then habitable
-                return Status.HABITABLE
-            else:
-                # antecedant cannot habitate without consequent
-                return Status.UNINHABITABLE
+        if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
+            # antecedant cannot habitate without consequent
+            return Status.UNINHABITABLE
         else:
             return Status.UNDEFINED
+            #if region is in antecedant and consequent then undefined but defaults to habitable
             # if region is not antecedant then undefined bahaviour
         
         
@@ -100,23 +97,26 @@ class SyllogismEvaluator:
     
     @staticmethod
     def evaluate_two_entails(statement1, statement2, region):
+        """      does not actually change anything
         if region.is_in_set(statement1.antecedent) and region.is_in_set(statement2.antecedent):
             # if region is in both antecedents then must be in both consequents for habitable
             if region.is_in_set(statement1.consequent) and region.is_in_set(statement2.consequent):
-                return Status.HABITABLE
+                return Status.UNDEFINED
             else:
                 return Status.UNINHABITABLE
+        """
         
         # evaluate single entailment for each statement
         if region.is_in_set(statement1.antecedent):
             if region.is_in_set(statement1.consequent):
-                return Status.HABITABLE
+                #pass to next if statement
+                pass
             else:
                 return Status.UNINHABITABLE
         
         if region.is_in_set(statement2.antecedent):
             if region.is_in_set(statement2.consequent):
-                return Status.HABITABLE
+                return Status.UNDEFINED
             else:
                 return Status.UNINHABITABLE
         
@@ -131,7 +131,8 @@ class SyllogismEvaluator:
                 if region.is_in_set(not_entails_statement.antecedent) and not region.is_in_set(not_entails_statement.consequent):
                     return Status.CONTAINS
                 else:
-                    return Status.HABITABLE
+                    # in entails ant and consq
+                    return Status.UNDEFINED
             else:
                 # Edge case: entails blocks both contains regions causing a contradiction
                 # Uninhabitable due to entails dominates not entails
@@ -202,14 +203,20 @@ class SyllogismEvaluator:
                 
     def check_permutation_validity(manager):
         # Check if the manager is valid - only checks not entails statements
+        stmt_count = 0
+        true_count = 0
+        
         for statement in manager.get_statements():
             if not statement.entails:
+                stmt_count += 1
                 for region_tuple, region in manager.regions.items():
-                    if region.is_in_set(statement.antecedent):
-                        if not region.is_in_set(statement.consequent):
-                            if region.status == Status.CONTAINS:
-                                return True
-        return False
+                    if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
+                        if region.status == Status.CONTAINS:
+                            true_count += 1
+                            break
+                            #statement true
+                            
+        return (stmt_count == true_count)
     
     
     #Check for conflicts in an input manager. 
@@ -264,14 +271,16 @@ class SyllogismEvaluator:
         
         else:    # evaluation false
             other_contains = SyllogismEvaluator.find_other_contains(other_manager)
+            found_valid_contains = False
+            valid_contains_regions = []
             
             for region_tuple, region in input_manager.regions.items():
                 
                 #if there is an entails statement in the same manager check it if it blocks
                 if other_statement is not None and other_statement.entails:
-                        other_status = SyllogismEvaluator.determine_single_entails_status(other_statement, region)
-                        if other_status == Status.UNINHABITABLE:
-                            continue  # uninhabitable region cant possible be contains
+                    other_status = SyllogismEvaluator.determine_single_entails_status(other_statement, region)
+                    if other_status == Status.UNINHABITABLE:
+                        continue  # uninhabitable region cant possible be contains
                 
                 #if this region could be contains under this statement
                 if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
@@ -281,9 +290,16 @@ class SyllogismEvaluator:
                         input_manager.set_validity(False)
                     
                     #else a region that could be contains should be contains
-                    elif not region_tuple in other_contains and region.status != Status.CONTAINS:
-                            region.set_status(Status.CONFLICT)
-                            input_manager.set_validity(False)
+                    elif not region_tuple in other_contains:
+                        valid_contains_regions.append(region_tuple)
+                        if region.status == Status.CONTAINS:
+                            found_valid_contains = True      
+                            
+            if not found_valid_contains:
+                for region_tuple, region in input_manager.regions.items():
+                    if region_tuple in valid_contains_regions:
+                        region.set_status(Status.CONFLICT)
+                input_manager.set_validity(False)
         
         return input_manager
 

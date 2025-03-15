@@ -51,8 +51,14 @@ class SyllogismGUI:
         self.create_premise_row("Minor Premise:", rowIn+1, 1)
         self.create_premise_row("Conclusion:", rowIn+2, 2)
         
-        self.process_button = tk.Button(self.input_frame, text="Display output Venn Diagram", command=self.process_syllogism_input)
-        self.process_button.grid(row=rowIn+3, column=0, columnspan=7, pady=10)
+        button_frame = tk.Frame(self.input_frame)
+        button_frame.grid(row=rowIn+3, column=0, columnspan=7, pady=10)
+        
+        self.process_button = tk.Button(button_frame, text="Display output Venn Diagram", command=self.process_syllogism_input)
+        self.process_button.pack(side=tk.LEFT, padx=5)
+        
+        self.process_help_button = tk.Button(button_frame, text="?", command=lambda: self.show_help("display_output_venn_diagram"))
+        self.process_help_button.pack(side=tk.LEFT, padx=5)
         
         self.row_counter += 4
 
@@ -157,6 +163,7 @@ class SyllogismGUI:
         self.row_counter += 1
     
     # Make a frame for interactive venn diagrams - takes up two additional rows for radio buttons and button
+
     def create_interactive_venn_frame(self):
         rowIn = self.row_counter
         
@@ -167,7 +174,7 @@ class SyllogismGUI:
         
         self.create_interactive_venn_diagram("Interactive Premises", self.interactive_frame, rowIn, 0)
         self.create_interactive_venn_diagram("Interactive Conclusion", self.interactive_frame, rowIn, 1)   
-             
+            
         radio_frame = tk.Frame(self.interactive_frame)
         radio_frame.grid(row=rowIn+1, column=0, padx=10, pady=10)
         
@@ -175,8 +182,14 @@ class SyllogismGUI:
         tk.Radiobutton(radio_frame, text="Uninhabitable", variable=self.region_status, value="uninhabitable").grid(row=rowIn+1, column=1, padx=5)
         tk.Radiobutton(radio_frame, text="Contains", variable=self.region_status, value="contains").grid(row=rowIn+1, column=2, padx=5)
         
-        self.check_button = tk.Button(self.interactive_frame, text="Check venn diagram against syllogism", command=self.process_venn_input)
-        self.check_button.grid(row=rowIn+2, column=0, columnspan=2, pady=10)
+        button_frame = tk.Frame(self.interactive_frame)
+        button_frame.grid(row=rowIn+2, column=0, columnspan=2, pady=10)
+        
+        self.check_button = tk.Button(button_frame, text="Check venn diagram against syllogism", command=self.process_venn_input)
+        self.check_button.pack(side=tk.LEFT, padx=5)
+        
+        self.check_help_button = tk.Button(button_frame, text="?", command=lambda: self.show_help("check_venn_diagram_against_syllogism"))
+        self.check_help_button.pack(side=tk.LEFT, padx=5)
         
         self.row_counter += 3
 
@@ -231,9 +244,12 @@ class SyllogismGUI:
         self.upload_conclusion_button = tk.Button(self.upload_frame, text="Upload Conclusion Image", command=self.upload_conclusion_image)
         self.upload_conclusion_button.grid(row=rowIn, column=2, padx=5, pady=5)
         
-        #add a process button to process the file
+        # Add a process button to process the file
         self.process_file_button = tk.Button(self.upload_frame, text="Process Images", command=self.process_images)
         self.process_file_button.grid(row=rowIn, column=3, padx=5, pady=5)
+        
+        self.process_file_help_button = tk.Button(self.upload_frame, text="?", command=lambda: self.show_help("process_images"))
+        self.process_file_help_button.grid(row=rowIn, column=4, padx=5, pady=5)
         
         self.row_counter += 1
     
@@ -335,3 +351,17 @@ class SyllogismGUI:
             
         except Exception as e:
             messagebox.showerror("Processing Error", str(e))
+            
+    def show_help(self, topic):
+        help_texts = {
+            "display_output_venn_diagram": "This button displays the output Venn diagram based on the input syllogism. Labels can be changed at the top, just remember to reallocate the terms of the syllogism after updating their names.",
+            "check_venn_diagram_against_syllogism": "This button checks the interactive Venn diagram against the syllogism. Any regions that are not consistent with the syllogism will be highlighted in red with an exclamation mark.",
+            "process_images": "This button processes the uploaded images to generate Venn diagrams. Make sure to upload both a premise and conclusion image. The interpretations of the images will be displayed in the interactive Venn diagrams for any further edits that need to be made. Make sure to provide images in the same orientation as the Venn diagrams in the interface with A in the top left, B in the center, and C on the right."
+        }
+        
+        help_window = tk.Toplevel(self.root)
+        help_window.title("Help")
+        help_window.geometry("400x200")  # Set a fixed size for the help window
+        
+        help_label = tk.Label(help_window, text=help_texts.get(topic, "No help available for this topic."), wraplength=380)
+        help_label.pack(padx=10, pady=10)
