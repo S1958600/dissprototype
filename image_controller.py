@@ -66,12 +66,14 @@ class ImageController:
         
         selected_circles = self.detect_circles(denoised, drawing_img)
         
+        #"""
         # display the selected circles    
         for (x, y, r) in selected_circles:
             # Draw the circle in the output image, then draw a rectangle corresponding to the center of the circle
             cv2.circle(resized_image, (x, y), r, (0, 255, 0), 2)
             cv2.rectangle(resized_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
         cv2.imshow("Selected Circles", resized_image)
+        #"""
         
         # identify each region and what set(s) it belongs to
         region_masks = self.generate_region_masks(denoised, selected_circles)
@@ -132,7 +134,7 @@ class ImageController:
         max_confidence_score = 0
                 
         for triplet in valid_triplets:
-            confidence_score = self.calculate_circle_confidence(triplet)
+            confidence_score = self.calculate_circle_confidence(triplet, image)
             if confidence_score > max_confidence_score:
                 max_confidence_score = confidence_score
                 selected_circles = triplet
@@ -151,14 +153,20 @@ class ImageController:
         #"""        
         
         """        
-        #print 20 most confident triplets
-        valid_triplets.sort(key=lambda x: self.calculate_circle_confidence(x), reverse=True)
+        # Print 20 most confident triplets in different colors
+        valid_triplets.sort(key=lambda x: self.calculate_circle_confidence(x, image), reverse=True)
         triplet_count = min(20, len(valid_triplets))
-        for i, triplet in enumerate(valid_triplets[:triplet_count], start=1):
-            #print(f"Triplet {i}: confidence={self.calculate_circle_confidence(triplet)}")
+        
+        # Draw the triplets in reverse order to make the more confident circles more visible
+        for i, triplet in enumerate(reversed(valid_triplets[:triplet_count]), start=1):
+            confidence = self.calculate_circle_confidence(triplet, image)
+            # Calculate color based on confidence rank
+            color = (0, int(255 * (1 - (i / triplet_count))), int(255 * (i / triplet_count)))
+            
             for (x, y, r) in triplet:
-                cv2.circle(drawing_img, (x, y), r, (0, 255, 0), 2)
+                cv2.circle(drawing_img, (x, y), r, color, 2)
                 cv2.rectangle(drawing_img, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+        
         cv2.imshow("Triplets - most confident", drawing_img)
         #"""
         
@@ -188,25 +196,41 @@ class ImageController:
                 continue
             
             #check if the distance between each of the 3 circles is within the min and max distance
-            distances = []
-            distances.append(math.sqrt((circle1[0] - circle2[0]) ** 2 + (circle1[1] - circle2[1]) ** 2))
-            distances.append(math.sqrt((circle1[0] - circle[0]) ** 2 + (circle1[1] - circle[1]) ** 2))
-            distances.append(math.sqrt((circle2[0] - circle[0]) ** 2 + (circle2[1] - circle[1]) ** 2))
-                
+            distance12 = math.sqrt((circle1[0] - circle2[0]) ** 2 + (circle1[1] - circle2[1]) ** 2)
+            distance01 = math.sqrt((circle1[0] - circle[0]) ** 2 + (circle1[1] - circle[1]) ** 2)
+            distance02 = math.sqrt((circle2[0] - circle[0]) ** 2 + (circle2[1] - circle[1]) ** 2)
+            distances =[distance12, distance01, distance02]
+            
             for distance in distances:
                 if not (min_distance <= distance <= max_distance):
                     triplet_valid = False
                     break
+            
+            #skips to the next iteration of pairs if the triplet is not valid    
+            if not triplet_valid:
+                continue
+            
+            # Calculate the center point of the triangle formed by the centers of the three circles
+            centroid_x = (circle1[0] + circle2[0] + circle[0]) / 3
+            centroid_y = (circle1[1] + circle2[1] + circle[1]) / 3
+            
+            # Check if the center point is within a radius distance from each of the three circle centers
+            for circle in [circle1, circle2, circle]:
+                centroid_distance = math.sqrt((centroid_x - circle[0]) ** 2 + (centroid_y - circle[1]) ** 2)
+                if centroid_distance > circle[2]:
+                    triplet_valid = False
+                    break     
             
             if triplet_valid:
                 valid_triplets.append([circle1, circle2, circle])
                 
         return valid_triplets
     
-    def calculate_circle_confidence(self, triplet):
-        w1=0.3 # weight for radius similarity
-        w2=0.2 # weight for distance consistency
-        w3=0.4 # weight for size bonus
+    def calculate_circle_confidence(self, triplet, binary_image):
+        w1=0.15 # weight for radius similarity                   0.3
+        w2=0.1 # weight for distance consistency                0.2
+        w3=0.35 # weight for size bonus                          0.4
+        w4=0.4 # weight for mean highlighted percentage
         
         circle1, circle2, circle3 = triplet
         radii = [circle1[2], circle2[2], circle3[2]]
@@ -230,14 +254,29 @@ class ImageController:
         max_radius = 600 # Maximum radius of a circle for normalization
         size_bonus = mean_radius / max_radius
         
+        # Highlighted percentage
+        highlighted_percentages = [self.calculate_highlighted_percentage(circle, binary_image) for circle in triplet]
+        mean_highlighted_percentage = np.mean(highlighted_percentages)
+        
+        
         # Weighted confidence
         confidence = (
             w1 * radius_similarity +
             w2 * distance_consistency +
-            w3 * size_bonus
+            w3 * size_bonus +
+            w4 * mean_highlighted_percentage
         )
         
         return max(0, min(confidence, 1))  #clamps to [0, 1]
+    
+    def calculate_highlighted_percentage(self, circle, binary_image):
+        mask = np.zeros(binary_image.shape, dtype=np.uint8) # Create a mask for the circle
+        cv2.circle(mask, (circle[0], circle[1]), circle[2], 255, thickness=2)  # Only draw the edge with thickness=2
+        highlighted_region = cv2.bitwise_and(binary_image, binary_image, mask=mask)
+        total_edge_pixels = cv2.countNonZero(mask)   # Total number of edge pixels in the circles edge
+        highlighted_edge_pixels = cv2.countNonZero(highlighted_region)   # Number of highlighted edge pixels
+        highlighted_percentage = highlighted_edge_pixels / total_edge_pixels
+        return highlighted_percentage
     
     def generate_region_masks(self, image, circles):
         # A is top left, B is top right, C is center - selected by x coord order
@@ -250,9 +289,12 @@ class ImageController:
         mask_B = np.zeros((height, width), dtype=np.uint8)
         mask_C = np.zeros((height, width), dtype=np.uint8)
         
-        cv2.circle(mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2], 255, thickness=-1)
-        cv2.circle(mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2], 255, thickness=-1)
-        cv2.circle(mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2], 255, thickness=-1)
+        # Reduce the radius by a small amount to exclude the edges
+        radius_reduction = 5  # Reduce the radius by 2 pixels
+        
+        cv2.circle(mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2] - radius_reduction, 255, thickness=-1)
+        cv2.circle(mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2] - radius_reduction, 255, thickness=-1)
+        cv2.circle(mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2] - radius_reduction, 255, thickness=-1)
         
         #masks identified by region tuple - note NULL region is not considered
         #use bitwise and for efficiency
@@ -266,9 +308,13 @@ class ImageController:
             (True, True, True): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_B), mask_C)  # ABC
         }
         
-        """
+        #"""
         #dev image for testing, use colour to identify regions in BGR format
-        all_regions = np.zeros((height, width, 3), dtype=np.uint8)
+        #all_regions = np.zeros((height, width, 3), dtype=np.uint8)
+        
+        #all regions is a copy of the input image
+        all_regions = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        
         all_regions[region_masks[(True, False, False)] == 255] = (0, 0, 255)  # A is red
         all_regions[region_masks[(False, True, False)] == 255] = (0, 255, 0)  # B is green
         all_regions[region_masks[(False, False, True)] == 255] = (255, 0, 0)  # C is blue

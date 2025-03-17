@@ -16,7 +16,16 @@ class SyllogismEvaluator:
         combined_manager = RegionManager(major_premise_manager.get_statements())
         combined_manager.add_statement(minor_premise_manager.get_statements()[0])
         combined_manager = SyllogismEvaluator.evaluate_status(combined_manager)
-               
+        
+        if not combined_manager.is_valid():
+            return {
+                'outputCode': False,
+                'major_premise': major_premise_manager,
+                'minor_premise': minor_premise_manager,
+                'conclusion': conclusion_manager,
+                'premises': combined_manager,
+            }
+        
         # Check if the conclusion fits into the combined premises
         valid_conclusion, replacement_premises_manager = SyllogismEvaluator.check_conclusion_validity(combined_manager, conclusion_manager.get_statements()[0])
         
@@ -93,6 +102,19 @@ class SyllogismEvaluator:
             elif statement1.entails and statement2.entails:
                 status = SyllogismEvaluator.evaluate_two_entails(statement1, statement2, region)
             region.status = status
+            
+        
+        #check that both indicidual statements are valid    
+        stmt1_manager = SyllogismEvaluator.evaluate_one_statement(RegionManager([statement1]))
+        conflict_manager = SyllogismEvaluator.check_manager_for_conflict(stmt1_manager, manager, True)
+        if not conflict_manager.is_valid():
+            return conflict_manager
+        
+        stmt2_manager = SyllogismEvaluator.evaluate_one_statement(RegionManager([statement2]))
+        conflict_manager = SyllogismEvaluator.check_manager_for_conflict(stmt2_manager, manager, True)
+        if not conflict_manager.is_valid():
+            return conflict_manager
+        
         return manager
     
     @staticmethod
