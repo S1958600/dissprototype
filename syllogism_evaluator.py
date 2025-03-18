@@ -18,6 +18,7 @@ class SyllogismEvaluator:
         combined_manager = SyllogismEvaluator.evaluate_status(combined_manager)
         
         if not combined_manager.is_valid():
+            #print("found contradicting premises")
             return {
                 'outputCode': False,
                 'major_premise': major_premise_manager,
@@ -106,16 +107,18 @@ class SyllogismEvaluator:
         
         #check that both indicidual statements are valid    
         stmt1_manager = SyllogismEvaluator.evaluate_one_statement(RegionManager([statement1]))
-        conflict_manager = SyllogismEvaluator.check_manager_for_conflict(stmt1_manager, manager, True)
-        if not conflict_manager.is_valid():
-            return conflict_manager
-        
         stmt2_manager = SyllogismEvaluator.evaluate_one_statement(RegionManager([statement2]))
-        conflict_manager = SyllogismEvaluator.check_manager_for_conflict(stmt2_manager, manager, True)
-        if not conflict_manager.is_valid():
-            return conflict_manager
+        
+        conflict_manager1 = SyllogismEvaluator.check_manager_for_conflict(manager, stmt1_manager, True)
+        if not conflict_manager1.is_valid():
+            return conflict_manager1
+        
+        conflict_manager2 = SyllogismEvaluator.check_manager_for_conflict(manager, stmt2_manager, True)
+        if not conflict_manager2.is_valid():
+            return conflict_manager2
         
         return manager
+    
     
     @staticmethod
     def evaluate_two_entails(statement1, statement2, region):
