@@ -227,9 +227,9 @@ class ImageController:
         return valid_triplets
     
     def calculate_circle_confidence(self, triplet, binary_image):
-        w1=0.15 # weight for radius similarity                   0.3
-        w2=0.1 # weight for distance consistency                0.2
-        w3=0.35 # weight for size bonus                          0.4
+        w1=0.15 # weight for radius similarity              
+        w2=0.1 # weight for distance consistency            
+        w3=0.35 # weight for size bonus                 
         w4=0.4 # weight for mean highlighted percentage
         
         circle1, circle2, circle3 = triplet
@@ -251,7 +251,7 @@ class ImageController:
         distance_consistency = 1 - (std_distance / mean_distance)
         
         # Size bonus
-        max_radius = 600 # Maximum radius of a circle for normalization
+        max_radius = 360 # Maximum radius of a circle for normalization
         size_bonus = mean_radius / max_radius
         
         # Highlighted percentage
