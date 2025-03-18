@@ -28,7 +28,11 @@ class SyllogismController:
     def process_venn_input(raw_syllogism, input_premises_manager, input_conclusion_manager):
         # Parse raw input and create mangers to evaluate venn input against
         evaluation = SyllogismController.process_syllogism_input(raw_syllogism)
-        #TODO dont need to reprocess the syllogism, just need to get the region managers
+        
+        
+        if evaluation['premises'].is_valid() == False:
+            #throw error for conflicting premises
+            raise ValueError("Conflicting premises cannot be evaluated")
         
         #set input managers statements to the syllogism statements
         for statement in evaluation['premises'].get_statements():
