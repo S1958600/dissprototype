@@ -25,9 +25,9 @@ class SyllogismController:
         return evaluation
     
     @staticmethod
-    def process_venn_input(raw_syllogism, input_premises_manager, input_conclusion_manager):
+    def process_venn_input(raw_syllogism, input_premises_manager, input_conclusion_manager, order):
         # Parse raw input and create mangers to evaluate venn input against
-        evaluation = SyllogismController.process_syllogism_input(raw_syllogism)
+        evaluation = SyllogismController.process_syllogism_input(raw_syllogism, order)
         
         
         if evaluation['premises'].is_valid() == False:

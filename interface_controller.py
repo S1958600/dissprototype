@@ -339,7 +339,7 @@ class SyllogismGUI:
         
         # Use the generated region managers for further processing
         try:
-            premises_manager, conclusion_manager = self.main_controller.process_venn_input(self.get_raw_syllogism_input(), premises_manager, conclusion_manager)
+            premises_manager, conclusion_manager = self.main_controller.process_venn_input(self.get_raw_syllogism_input(), premises_manager, conclusion_manager, order=self.set_names)
             self.display_venn_diagrams(premises_manager, conclusion_manager, "Interactive Premises", "Interactive Conclusion")
             
             # Output text
