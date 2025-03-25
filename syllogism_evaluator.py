@@ -120,6 +120,8 @@ class SyllogismEvaluator:
         return manager
     
     def mark_premise_conflict(manager, statement):
+        #only to be used when a statement is not true in an input diagram
+        #marks all regions relevant to the statement as conflicts
         for region_tuple, region in manager.regions.items():
             if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
                 region.set_status(Status.CONFLICT)

@@ -254,14 +254,14 @@ class SyllogismGUI:
         self.row_counter += 1
     
     def upload_premise_image(self):
-        self.image_controller.upload_premise_image()
+        self.main_controller.upload_premise_image()
 
     def upload_conclusion_image(self):
-        self.image_controller.upload_conclusion_image()
+        self.main_controller.upload_conclusion_image()
 
     def process_images(self):
         try:
-            premise_venn_manager, conclusion_venn_manager = self.image_controller.process_images()
+            premise_venn_manager, conclusion_venn_manager = self.main_controller.process_images()
             self.update_interactive_venn_diagrams(premise_venn_manager, conclusion_venn_manager)
         except Exception as e:
             messagebox.showerror("Image Processing Error", str(e))

@@ -290,7 +290,7 @@ class ImageController:
         mask_C = np.zeros((height, width), dtype=np.uint8)
         
         # Reduce the radius by a small amount to exclude the edges
-        radius_reduction = 5  # Reduce the radius by 2 pixels
+        radius_reduction = 5  # Reduce the radius by x pixels
         
         cv2.circle(mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2] - radius_reduction, 255, thickness=-1)
         cv2.circle(mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2] - radius_reduction, 255, thickness=-1)
