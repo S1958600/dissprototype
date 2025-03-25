@@ -285,27 +285,37 @@ class ImageController:
         
         # Create a mask for each circle
         height, width = image.shape[:2]
-        mask_A = np.zeros((height, width), dtype=np.uint8)
-        mask_B = np.zeros((height, width), dtype=np.uint8)
-        mask_C = np.zeros((height, width), dtype=np.uint8)
+        small_mask_A = np.zeros((height, width), dtype=np.uint8)
+        small_mask_B = np.zeros((height, width), dtype=np.uint8)
+        small_mask_C = np.zeros((height, width), dtype=np.uint8)
+        
+        big_mask_A = np.zeros((height, width), dtype=np.uint8)
+        big_mask_B = np.zeros((height, width), dtype=np.uint8)
+        big_mask_C = np.zeros((height, width), dtype=np.uint8)
         
         # Reduce the radius by a small amount to exclude the edges
-        radius_reduction = 5  # Reduce the radius by x pixels
+        radius_reduction = 10  # Reduce the radius by x pixels
         
-        cv2.circle(mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2] - radius_reduction, 255, thickness=-1)
-        cv2.circle(mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2] - radius_reduction, 255, thickness=-1)
-        cv2.circle(mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2] - radius_reduction, 255, thickness=-1)
+        cv2.circle(small_mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2] - radius_reduction, 255, thickness=-1)
+        cv2.circle(small_mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2] - radius_reduction, 255, thickness=-1)
+        cv2.circle(small_mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2] - radius_reduction, 255, thickness=-1)
+        
+        # Increase the radius by a small amount for regions outside the circle
+        cv2.circle(big_mask_A, (sets['A'][0], sets['A'][1]), sets['A'][2] + radius_reduction, 255, thickness=-1)
+        cv2.circle(big_mask_B, (sets['B'][0], sets['B'][1]), sets['B'][2] + radius_reduction, 255, thickness=-1)
+        cv2.circle(big_mask_C, (sets['C'][0], sets['C'][1]), sets['C'][2] + radius_reduction, 255, thickness=-1)
+        
         
         #masks identified by region tuple - note NULL region is not considered
         #use bitwise and for efficiency
         region_masks = {
-            (True, False, False): cv2.bitwise_and(mask_A, cv2.bitwise_not(cv2.bitwise_or(mask_B, mask_C))),  # A
-            (False, True, False): cv2.bitwise_and(mask_B, cv2.bitwise_not(cv2.bitwise_or(mask_A, mask_C))),  # B
-            (False, False, True): cv2.bitwise_and(mask_C, cv2.bitwise_not(cv2.bitwise_or(mask_A, mask_B))),  # C
-            (True, True, False): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_B), cv2.bitwise_not(mask_C)),  # AB
-            (True, False, True): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_C), cv2.bitwise_not(mask_B)),  # AC
-            (False, True, True): cv2.bitwise_and(cv2.bitwise_and(mask_B, mask_C), cv2.bitwise_not(mask_A)),  # BC
-            (True, True, True): cv2.bitwise_and(cv2.bitwise_and(mask_A, mask_B), mask_C)  # ABC
+            (True, False, False): cv2.bitwise_and(small_mask_A, cv2.bitwise_not(cv2.bitwise_or(big_mask_B, big_mask_C))),  # A
+            (False, True, False): cv2.bitwise_and(small_mask_B, cv2.bitwise_not(cv2.bitwise_or(big_mask_A, big_mask_C))),  # B
+            (False, False, True): cv2.bitwise_and(small_mask_C, cv2.bitwise_not(cv2.bitwise_or(big_mask_A, big_mask_B))),  # C
+            (True, True, False): cv2.bitwise_and(cv2.bitwise_and(small_mask_A, small_mask_B), cv2.bitwise_not(big_mask_C)),  # AB
+            (True, False, True): cv2.bitwise_and(cv2.bitwise_and(small_mask_A, small_mask_C), cv2.bitwise_not(big_mask_B)),  # AC
+            (False, True, True): cv2.bitwise_and(cv2.bitwise_and(small_mask_B, small_mask_C), cv2.bitwise_not(big_mask_A)),  # BC
+            (True, True, True): cv2.bitwise_and(cv2.bitwise_and(small_mask_A, small_mask_B), small_mask_C)  # ABC
         }
         
         #"""
