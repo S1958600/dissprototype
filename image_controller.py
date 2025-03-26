@@ -81,7 +81,7 @@ class ImageController:
         #check all region masks and interpret the regions
         region_manager = self.interpret_all_regions(denoised, region_masks)
                 
-        region_manager.print_regions()
+        #region_manager.print_regions()
         
         return region_manager
     
@@ -91,8 +91,9 @@ class ImageController:
         circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=800, param2=30, minRadius=10, maxRadius=600)
         
         if circles is None:
-            print("No circles detected - returning")
-            return
+            #throw an error if no circles are detected
+            raise ValueError("No circles detected in the image")
+        
         
         circles = np.round(circles[0, :]).astype("int")
         filtered_circles = []
@@ -401,7 +402,7 @@ class ImageController:
         dev_image = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
         
         if len(contours) == 0:
-            print("No contours detected")
+            #print("No contours detected")
             return False
         
         cross_detected = False
@@ -426,8 +427,8 @@ class ImageController:
                 # Draw the contour in red if it is not detected as a cross
                 cv2.drawContours(dev_image, [contour], -1, (0, 0, 255), 2)
         
-        if cross_detected:
-            cv2.imshow("Cross Detection", dev_image)
+        #if cross_detected:
+        #    cv2.imshow("Cross Detection", dev_image)
         
         return cross_detected
 
