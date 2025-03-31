@@ -53,8 +53,14 @@ class ImageController:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
         
-        #show denoised image
-        cv2.imshow("Denoised Image", cleaned)
+        """
+        #show each step of image processing for report
+        cv2.imshow("input image", image)
+        cv2.imshow("Gray image", gray)
+        cv2.imshow("gaussian blur", blurred)
+        cv2.imshow("Adaptive Threshold", thresh)
+        cv2.imshow("Morphological Opening", cleaned)
+        #"""
 
         return cleaned
 
@@ -110,7 +116,20 @@ class ImageController:
             if r / max(height, width) < 0.1:
                 continue
             filtered_circles.append((x, y, r))
-            
+        
+        """
+        # Print all circles detected
+        image_copy = image.copy()
+        #enable colour on binary image copy
+        image_copy = cv2.cvtColor(image_copy, cv2.COLOR_GRAY2BGR)
+        
+        for i, (x, y, r) in enumerate(filtered_circles, start=1):
+            cv2.circle(image_copy, (x, y), r, (0, 255, 0), 2)
+            cv2.rectangle(image_copy, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+        cv2.imshow("All Circles", image_copy)
+        #"""
+        
+        
         # remove bottom 20% of circles
         filtered_circles.sort(key=lambda x: x[1], reverse=True)
         filtered_circles = filtered_circles[:int(0.8 * len(filtered_circles))]
@@ -125,7 +144,7 @@ class ImageController:
             cv2.rectangle(drawing_img, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
             cv2.putText(drawing_img, str(i), (x - 5, y + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         cv2.imshow("largest circles", drawing_img)
-        """
+        #"""
 
         valid_triplets = []
         # for each circle in the list, find all valid 3 circle combinations
