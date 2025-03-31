@@ -52,6 +52,9 @@ class ImageController:
         #morphological opening to clean noise
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+        
+        #show denoised image
+        cv2.imshow("Denoised Image", cleaned)
 
         return cleaned
 

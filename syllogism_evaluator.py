@@ -382,14 +382,17 @@ class SyllogismEvaluator:
                         #skip this region
                         continue
                         
+                        
+                # since evaluation false then should not share contains with other manager
+                if region_tuple in other_contains and region.status == Status.CONTAINS:
+                    region.set_status(Status.CONFLICT)
+                    input_manager.set_validity(False)
+                        
+                        
                 #if this region could be contains under this statement
                 if region.is_in_set(statement.antecedent) and not region.is_in_set(statement.consequent):
                     # since evaluation false then should not share contains with other manager
-                    if region_tuple in other_contains and region.status == Status.CONTAINS:
-                        region.set_status(Status.CONFLICT)
-                        input_manager.set_validity(False)
-                    
-                    else:
+                    if not region_tuple in other_contains:
                         valid_contains_regions.append(region_tuple)
                         if region.status == Status.CONTAINS:
                             found_valid_contains = True
