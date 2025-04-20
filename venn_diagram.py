@@ -80,7 +80,7 @@ def generate_region_manager_from_venn(venn):
         
         if venn.get_label_by_id(subset).get_text() == 'X':
             status = Status.CONTAINS
-        elif venn.get_patch_by_id(subset).get_facecolor() == (0.5019607843137255, 0.5019607843137255, 0.5019607843137255, 0.4):
+        elif venn.get_patch_by_id(subset).get_facecolor() == (0.5019607843137255, 0.5019607843137255, 0.5019607843137255, 0.4) or venn.get_patch_by_id(subset).get_facecolor() == (0.5019607843137255, 0.5019607843137255, 0.5019607843137255, 0.5):
             # ^ this is the value produced by set colout to grey
             status = Status.UNINHABITABLE
         else:
